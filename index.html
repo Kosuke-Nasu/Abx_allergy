@@ -834,7 +834,13 @@ buildAll();
 
 /* オフラインで開けるようにする。https 配信のときだけ有効になります */
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+  /* updateViaCache:"none" は sw.js 自体を HTTP キャッシュから取らせないための指定。
+     これがないと配信側のキャッシュで古い Service Worker が残り続けることがあります */
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js",{scope:"./",updateViaCache:"none"})
+      .then(r=>r.update())
+      .catch(()=>{});
+  });
 }
 </script>
 </body>

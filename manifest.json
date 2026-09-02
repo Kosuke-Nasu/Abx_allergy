@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "抗菌薬アレルギー ベッドサイド・ツール",
   "short_name": "抗菌薬アレルギー",
   "description": "ESCMID 2026 ガイドラインに基づく交差反応チェックとリスク層別化",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
