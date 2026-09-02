@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Antibiotic Allergy — Bedside Tool</title>
+<meta name="description" content="Cross-reactivity lookup and risk stratification based on the ESCMID 2026 antibiotic allergy guideline">
+<meta name="theme-color" content="#080f1c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="抗菌薬アレルギー">
+<style>
+:root{
+  --bg:#080f1c;
+  --surface:#101c30;
+  --surface-2:#16243c;
+  --rule:#22334f;
+  --rule-strong:#33486a;
+  --ink:#e6edf8;
+  --muted:#93a6c4;
+  --accent:#5fb3d9;
+  --accent-deep:#0d2036;
+  --accent-soft:rgba(95,179,217,.14);
+  --red:#ff6b6b;      --red-bg:rgba(255,107,107,.13);  --red-line:#ff6b6b;
+  --amber:#f0b249;    --amber-bg:rgba(240,178,73,.13);
+  --grey:#9fb0c9;     --grey-bg:rgba(159,176,201,.12);
+  --green:#5bd39b;    --green-bg:rgba(91,211,155,.13);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  font-size:16px; line-height:1.65; -webkit-text-size-adjust:100%;
+  font-feature-settings:"palt" 1;
+}
+html[lang="en"] body{font-feature-settings:normal}
+.wrap{max-width:880px;margin:0 auto;padding:0 14px 72px}
+
+/* ---------- header ---------- */
+header{background:var(--accent-deep);border-bottom:1px solid var(--rule);padding:calc(13px + env(safe-area-inset-top,0px)) 0 0}
+body{padding-bottom:env(safe-area-inset-bottom,0px)}
+header .wrap{padding-bottom:0}
+.topline{display:flex;align-items:flex-start;gap:12px}
+.topline div{min-width:0}
+h1{font-size:17px;font-weight:600;margin:0 0 2px;letter-spacing:.01em;color:#eaf3fb}
+header p{margin:0 0 12px;font-size:12.5px;color:#7d97b5;line-height:1.5}
+.lang{margin-left:auto;flex:0 0 auto;display:flex;border:1px solid var(--rule-strong);border-radius:7px;overflow:hidden}
+.lang button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12.5px;font-weight:600;padding:5px 11px;cursor:pointer;letter-spacing:.06em}
+.lang button[aria-pressed="true"]{background:var(--accent);color:#06111f}
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:0 0 auto;background:transparent;color:var(--muted);border:0;border-bottom:2px solid transparent;
+  font:inherit;font-size:13.5px;padding:9px 13px;cursor:pointer;white-space:nowrap;
+}
+nav button:hover{color:var(--ink)}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+nav button:focus-visible,.chip:focus-visible,select:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- generic ---------- */
+section[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:11px;padding:16px;margin:14px 0}
+h2{font-size:16px;margin:22px 0 8px;font-weight:600}
+h3{font-size:14.5px;margin:18px 0 6px;font-weight:600;color:var(--accent)}
+p{margin:.5em 0}
+.note{font-size:13px;color:var(--muted);line-height:1.7}
+.note + .note{margin-top:.9em}
+.note ul{margin:.35em 0 .6em;padding-left:1.15em}
+.note li{margin:.3em 0}
+.subhead{font-size:13px;font-weight:600;color:var(--ink);margin:0 0 .2em}
+/* guidance blocks under the cross-reactivity verdict */
+.grule{margin:14px 0 0;padding:0 0 0 13px;border-left:2px solid var(--rule-strong)}
+.grule h5{margin:0 0 5px;font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:.01em}
+.grule ul{margin:0;padding-left:1.15em}
+.grule li{margin:.32em 0;font-size:13px;color:var(--muted);line-height:1.7}
+.gcaution{margin-top:16px;padding-top:12px;border-top:1px solid var(--rule);display:grid;gap:9px}
+.gcaution div{position:relative;padding-left:20px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.gcaution div::before{content:"!";position:absolute;left:2px;top:0;color:var(--amber);font-weight:700}
+.sep{height:1px;background:var(--rule);border:0;margin:16px 0}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+select,input[type="text"]{
+  width:100%;font:inherit;font-size:16px;padding:10px 11px;border:1px solid var(--rule-strong);
+  border-radius:8px;background:var(--surface-2);color:var(--ink);appearance:none;
+}
+select{
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+option,optgroup{background:var(--surface-2);color:var(--ink)}
+.btn{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--rule-strong);background:var(--surface-2);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);color:#06111f;border-color:var(--accent);font-weight:600}
+.btn-primary:hover{background:#7cc4e4;color:#06111f}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+ul{margin:.4em 0;padding-left:1.25em}
+li{margin:.25em 0}
+a{color:var(--accent)}
+
+/* ---------- cross-reactivity ---------- */
+.pick{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:600px){.pick{grid-template-columns:1fr 1fr}}
+.verdict{border-radius:10px;padding:14px 16px;margin:14px 0;border-left:4px solid;background:var(--surface-2)}
+.verdict .head{font-size:17px;font-weight:600;margin:0 0 4px}
+.verdict .sub{font-size:13.5px;margin:0;line-height:1.65;color:var(--ink)}
+.v-R{background:var(--red-bg);border-color:var(--red)} .v-R .head{color:var(--red)}
+.v-O{background:var(--amber-bg);border-color:var(--amber)} .v-O .head{color:var(--amber)}
+.v-G{background:var(--grey-bg);border-color:var(--grey)} .v-G .head{color:var(--grey)}
+.v-N{background:var(--green-bg);border-color:var(--green)} .v-N .head{color:var(--green)}
+.v-K{background:var(--surface-2);border-color:var(--rule-strong)} .v-K .head{color:var(--ink)}
+
+.group{margin:16px 0 0}
+.group h4{font-size:13.5px;margin:0 0 7px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.swatch{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+.s-R{background:var(--red)} .s-O{background:var(--amber)} .s-G{background:var(--grey)} .s-N{background:var(--green)}
+.drugs{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-size:13.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--rule-strong);
+  background:var(--surface-2);cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.chip:hover{border-color:var(--accent)}
+.chip .jp{color:var(--muted);font-size:12px;margin-left:5px}
+.chip.c-R{background:var(--red-bg);border-color:rgba(255,107,107,.45)}
+.chip.c-O{background:var(--amber-bg);border-color:rgba(240,178,73,.45)}
+.chip.c-G{background:var(--grey-bg);border-color:rgba(159,176,201,.4)}
+.chip.c-N{background:var(--green-bg);border-color:rgba(91,211,155,.35)}
+.unavail{opacity:.55}
+.legend{font-size:12.5px;color:var(--muted);display:grid;gap:6px;margin-top:6px}
+.legend div{display:flex;align-items:center;gap:9px}
+
+/* ---------- wizard ---------- */
+.q{margin:0 0 8px;font-size:15px;font-weight:600}
+.opts{display:grid;gap:8px;margin-bottom:6px}
+.opt{
+  text-align:left;font:inherit;font-size:14.5px;padding:11px 13px;border-radius:9px;
+  border:1px solid var(--rule-strong);background:var(--surface-2);cursor:pointer;line-height:1.55;color:var(--ink)
+}
+.opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+.opt small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.crumb{font-size:12.5px;color:var(--muted);margin-bottom:11px}
+.crumb span{background:var(--surface-2);border:1px solid var(--rule);border-radius:6px;padding:2px 7px;margin:0 4px 4px 0;display:inline-block}
+.result{border-radius:10px;padding:16px;border-left:4px solid}
+.r-vlow{background:var(--green-bg);border-color:var(--green)} .r-vlow .tag{color:var(--green)}
+.r-low{background:var(--accent-soft);border-color:var(--accent)} .r-low .tag{color:var(--accent)}
+.r-high{background:var(--red-bg);border-color:var(--red)} .r-high .tag{color:var(--red)}
+.result .tag{font-size:12.5px;font-weight:700;letter-spacing:.04em;margin:0 0 3px}
+.result h3{margin:0 0 8px;font-size:17px;color:var(--ink)}
+
+/* ---------- score ---------- */
+.score-row{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:14.5px;cursor:pointer}
+.score-row:last-of-type{border-bottom:0}
+.score-row input{width:20px;height:20px;margin-top:2px;flex:0 0 auto;accent-color:var(--accent)}
+.score-row .pts{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap;padding-top:2px}
+.total{display:flex;align-items:baseline;gap:12px;margin-top:12px;padding-top:12px;border-top:2px solid var(--rule-strong)}
+.total b{font-size:32px;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+.total span{font-size:13.5px;color:var(--muted)}
+
+/* ---------- checklist / timer ---------- */
+.check{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:14.5px;cursor:pointer}
+.check input{width:19px;height:19px;margin-top:2px;flex:0 0 auto;accent-color:var(--red)}
+.timer{font-variant-numeric:tabular-nums;font-size:46px;font-weight:600;letter-spacing:.02em;margin:6px 0;color:var(--accent)}
+ol.steps{padding-left:1.35em;margin:.4em 0}
+ol.steps li{margin:.45em 0}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12.5px}
+code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:13px;color:var(--accent)}
+textarea{width:100%;min-height:170px;font:inherit;font-size:13.5px;line-height:1.65;padding:12px;border:1px solid var(--rule-strong);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
+.disclaimer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;margin-top:26px;line-height:1.7}
+@media (prefers-reduced-motion:no-preference){.verdict,.result{animation:in .18s ease-out}}
+@keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topline">
+      <div>
+        <h1 id="hTitle"></h1>
+        <p id="hSub"></p>
+      </div>
+      <div class="lang">
+        <button data-lang="ja" aria-pressed="true">日本語</button>
+        <button data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+    <nav role="tablist" id="nav"></nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section id="cross"></section>
+  <section id="risk" hidden></section>
+  <section id="cdct" hidden></section>
+  <section id="sev" hidden></section>
+  <section id="rec" hidden></section>
+  <section id="doc" hidden></section>
+  <section id="link" hidden></section>
+  <p class="disclaimer" id="disc"></p>
+</div>
+
+<script>
+/* =========================================================
+   DATA
+   ========================================================= */
+const DRUGS=[
+ {en:"Amoxicillin",jp:"アモキシシリン",ab:"AMPC",cls:"pen",jpAvail:1},
+ {en:"Penicillin G",jp:"ベンジルペニシリン",ab:"PCG",cls:"pen",jpAvail:1},
+ {en:"Penicillin V",jp:"フェノキシメチルペニシリン",ab:"PCV",cls:"pen",jpAvail:0},
+ {en:"Flucloxacillin",jp:"フルクロキサシリン",ab:"FLCX",cls:"pen",jpAvail:0},
+ {en:"Feneticillin",jp:"フェネチシリン",ab:"",cls:"pen",jpAvail:0},
+ {en:"Piperacillin",jp:"ピペラシリン",ab:"PIPC",cls:"pen",jpAvail:1},
+ {en:"Cefalexin",jp:"セファレキシン",ab:"CEX",cls:"ceph",jpAvail:1},
+ {en:"Cefazolin",jp:"セファゾリン",ab:"CEZ",cls:"ceph",jpAvail:1},
+ {en:"Cefalothin",jp:"セファロチン",ab:"CET",cls:"ceph",jpAvail:0},
+ {en:"Cefuroxime",jp:"セフロキシム",ab:"CXM",cls:"ceph",jpAvail:0},
+ {en:"Cefaclor",jp:"セファクロル",ab:"CCL",cls:"ceph",jpAvail:1},
+ {en:"Cefamandole",jp:"セファマンドール",ab:"CMD",cls:"ceph",jpAvail:0},
+ {en:"Ceftibuten",jp:"セフチブテン",ab:"CETB",cls:"ceph",jpAvail:0},
+ {en:"Ceftriaxone",jp:"セフトリアキソン",ab:"CTRX",cls:"ceph",jpAvail:1},
+ {en:"Cefotaxime",jp:"セフォタキシム",ab:"CTX",cls:"ceph",jpAvail:1},
+ {en:"Ceftazidime",jp:"セフタジジム",ab:"CAZ",cls:"ceph",jpAvail:1},
+ {en:"Cefepime",jp:"セフェピム",ab:"CFPM",cls:"ceph",jpAvail:1},
+ {en:"Cefiderocol",jp:"セフィデロコル",ab:"CFDC",cls:"ceph",jpAvail:1},
+ {en:"Ceftaroline",jp:"セフタロリン",ab:"CPT",cls:"ceph",jpAvail:0},
+ {en:"Ceftolozane",jp:"セフトロザン",ab:"CTLZ",cls:"ceph",jpAvail:1},
+ {en:"Meropenem",jp:"メロペネム",ab:"MEPM",cls:"carb",jpAvail:1},
+ {en:"Imipenem",jp:"イミペネム",ab:"IPM/CS",cls:"carb",jpAvail:1},
+ {en:"Ertapenem",jp:"エルタペネム",ab:"ETP",cls:"carb",jpAvail:1},
+ {en:"Aztreonam",jp:"アズトレオナム",ab:"AZT",cls:"mono",jpAvail:1}
+];
+/* Table 3, read cell-by-cell from the published figure.
+   K = same drug, G = PPL core, R = identical side chain, O = similar side chain, N = no risk */
+const M=[
+"KGGGGGONNNOONNNNNNNNNNNN","GKGGGGONNNOONNNNNNNNNNNN","GGKGGGONNNOONNNNNNNNNNNN",
+"GGGKGGNNNNNNNNNNNNNNNNNN","GGGGKGNNNNNNNNNNNNNNNNNN","GGGGGKONNNOONNNNNNNNNNNN",
+"OOONNOKNNNRONNNNNNNNNNNN","NNNNNNNKNNNNNNNNNNNNNNNN","NNNNNNNNKONNNNONNNNNNNNN",
+"NNNNNNNNOKNNNOOOOOOONNNO","OOONNORNNNKONNNNNNNNNNNN","OOONNOONNNOKNNNNNNNNNNNN",
+"NNNNNNNNNNNNKOOOOOOONNNO","NNNNNNNNNONNOKROOOOONNNO","NNNNNNNNOONNORKOROOONNNO",
+"NNNNNNNNNONNOOOKOROONNNR","NNNNNNNNNONNOOROKOOONNNO","NNNNNNNNNONNOOOROKOONNNR",
+"NNNNNNNNNONNOOOOOOKONNNO","NNNNNNNNNONNOOOOOOOKNNNO","NNNNNNNNNNNNNNNNNNNNKOON",
+"NNNNNNNNNNNNNNNNNNNNOKON","NNNNNNNNNNNNNNNNNNNNOOKN","NNNNNNNNNONNOOOROROONNNK"
+];
+
+/* =========================================================
+   I18N
+   ========================================================= */
+const L={
+ title:{ja:"抗菌薬アレルギー ベッドサイド・ツール",en:"Antibiotic Allergy — Bedside Tool"},
+ sub:{ja:"ESCMID 2026 ガイドライン（Joean O, et al. Clin Microbiol Infect 2026;32:767-787）準拠",
+      en:"Based on the ESCMID 2026 guideline (Joean O, et al. Clin Microbiol Infect 2026;32:767-787)"},
+ nav:{ja:["交差反応","リスク評価","負荷試験","重症度","推奨一覧","記載例","資料"],
+      en:["Cross-reactivity","Risk","Challenge","Severity","Recommendations","Templates","Sources"]},
+ disc:{ja:"本アプリは ESCMID 2026 ガイドライン（CC BY 4.0）の内容を臨床現場で参照しやすくするための個人用ツールです。原文の推奨を要約しており、判断の根拠として使う際は必ず原著を確認してください。国内の薬剤事情・添付文書とは一致しない部分があります。個々の患者の診療判断の責任は使用者にあります。",
+       en:"A personal reference tool that condenses the ESCMID 2026 guideline (CC BY 4.0) for use at the bedside. Recommendations are summarised, so check the original text before relying on any of it. Drug availability and labelling differ by country. Responsibility for clinical decisions rests with the user."},
+
+ /* ---- cross ---- */
+ c_culprit:{ja:"アレルギー歴のある薬（被疑薬）",en:"Drug the patient reacted to"},
+ c_target:{ja:"これから使いたい薬",en:"Drug you want to give"},
+ c_all:{ja:"— 全薬剤を一覧で見る —",en:"— show all drugs —"},
+ c_notavail:{ja:" ※国内なし",en:" (not marketed in Japan)"},
+ c_head:{ja:d=>d+" にアレルギー歴がある場合",en:d=>"If the patient reacted to "+d},
+ c_pair:{ja:(a,b,l)=>"<b>"+a+"</b> にアレルギー歴 → <b>"+b+"</b>："+l+"。",
+         en:(a,b,l)=>"Reacted to <b>"+a+"</b> → giving <b>"+b+"</b>: "+l+"."},
+ c_legend:{ja:["R1/R2 側鎖が同一 — 交差反応の可能性が高い","R1/R2 側鎖が類似、または臨床研究に基づく交差反応の可能性","ペニシリン核（PPL）を介したアレルギーの可能性","交差アレルギー反応のリスクなし"],
+           en:["Identical R1 or R2 side chain — cross-reactivity likely","Similar R1/R2 side chain, or cross-reactivity suggested by clinical studies","Allergy possible through the penicillin core (PPL)","No risk of a cross-allergic reaction"]},
+ c_src:{ja:"出典：Table 3, ESCMID 2026（原典は SWAB 2023 ガイドライン）。<span style='opacity:.55'>薄い表示</span>は国内で流通していない薬剤。",
+        en:"Source: Table 3, ESCMID 2026 (originally from the SWAB 2023 guideline). <span style='opacity:.55'>Dimmed</span> drugs are not marketed in Japan."},
+ c_groups:{ja:["ペニシリン系","セファロスポリン系","カルバペネム系","モノバクタム"],
+           en:["Penicillins","Cephalosporins","Carbapenems","Monobactam"]},
+ c_missing_h:{ja:"この表に載っていない国内薬",en:"Drugs not covered by Table 3"},
+ c_missing:{ja:"<p class='note'>配合剤は β-ラクタム本体で判断します。</p>"+
+   "<ul class='note' style='margin-top:.4em'><li><code>タゾピペ</code> → ピペラシリン</li><li><code>オグサワ／クラバモックス</code> → アモキシシリン</li><li><code>ユナシン</code> → アンピシリン</li></ul>"+
+   "<p class='note'>ただし、クラブラン酸・スルバクタム自体が被疑薬となる報告もあります。</p>"+
+   "<hr class='sep'>"+
+   "<p class='subhead'>表に収載のない主な国内薬</p>"+
+   "<ul class='note'>"+
+   "<li><b>ペニシリン系</b>：アンピシリン (ABPC)、スルタミシリン</li>"+
+   "<li><b>内服セフェム</b>：セフジニル、セフカペン、セフジトレン、セフテラム（セファクロル以外）</li>"+
+   "<li><b>注射セフェム・セファマイシン系</b>：セフォチアム (CTM)、セフメタゾール (CMZ)、フロモキセフ (FMOX)、セフミノクス、セフォペラゾン/スルバクタム</li>"+
+   "<li><b>カルバペネム系</b>：ドリペネム (DRPM)、ビアペネム (BIPM)、テビペネム</li></ul>"+
+   "<p class='note'>これらは <b>R1/R2 側鎖の類似性という原則</b>で判断し、判断がつかない場合は専門医へ相談してください。</p>"+
+   "<hr class='sep'>"+
+   "<p class='subhead'>アンピシリンについて</p>"+
+   "<p class='note'>アンピシリンは Table 3 に収載されていません。以下は本ガイドライン外の一般的な知見です。<br>アモキシシリンと同じアミノペニシリンで、セファレキシン・セファクロルと R1 側鎖を共有します。<br>"+
+   "アミノセフェムはペニシリンアレルギー患者での交差反応率が最も高い群（16.45%）と報告されています（Picard 2019, 本ガイドライン引用）。</p>",
+  en:"<p class='note'>For combinations, judge by the beta-lactam itself.</p>"+
+   "<ul class='note' style='margin-top:.4em'><li><code>piperacillin/tazobactam</code> → piperacillin</li><li><code>amoxicillin/clavulanate</code> → amoxicillin</li><li><code>ampicillin/sulbactam</code> → ampicillin</li></ul>"+
+   "<p class='note'>Clavulanate and sulbactam can occasionally be the culprit themselves.</p>"+
+   "<hr class='sep'>"+
+   "<p class='subhead'>Commonly used agents absent from Table 3</p>"+
+   "<ul class='note'>"+
+   "<li><b>Penicillins</b>: ampicillin, sultamicillin</li>"+
+   "<li><b>Oral cephalosporins</b>: cefdinir, cefcapene, cefditoren, cefteram (any other than cefaclor)</li>"+
+   "<li><b>Injectable cephalosporins and cephamycins</b>: cefotiam, cefmetazole, flomoxef, cefminox, cefoperazone/sulbactam</li>"+
+   "<li><b>Carbapenems</b>: doripenem, biapenem, tebipenem</li></ul>"+
+   "<p class='note'>Judge these by the same principle — <b>R1/R2 side chain similarity</b> — and involve a specialist when the answer is not clear.</p>"+
+   "<hr class='sep'>"+
+   "<p class='subhead'>On ampicillin</p>"+
+   "<p class='note'>Ampicillin does not appear in Table 3, so what follows is general knowledge rather than guideline content.<br>An aminopenicillin like amoxicillin, it shares its R1 side chain with cefalexin and cefaclor.<br>"+
+   "Amino-cephalosporins carry the highest reported cross-reactivity in penicillin-allergic patients (16.45%; Picard 2019, cited by this guideline).</p>"},
+
+ /* ---- risk ---- */
+ r_hint:{ja:"質問に答えると、超低／低／高リスクの判定と対応が出ます。",
+         en:"Answer the questions to get a very low / low / high risk verdict and what to do next."},
+ r_reset:{ja:"最初からやり直す",en:"Start over"},
+ r_note:{ja:"Fig. 1（β-ラクタム）および Fig. 2（非 β-ラクタム）のフローと推奨 2.1〜2.4 に基づきます。判定はあくまで問診の整理を助けるもので、最終判断は診療上の文脈で行ってください。",
+         en:"Follows the Fig. 1 (beta-lactam) and Fig. 2 (non-beta-lactam) pathways and recommendations 2.1–2.4. It organises the history; the decision stays clinical."},
+ pf_h:{ja:"PEN-FAST スコア",en:"PEN-FAST score"},
+ pf_note:{ja:"ペニシリンアレルギー歴のある患者の臨床判断ルール（Trubiano 2020 / PALACE 試験 2023）。本ガイドラインが「5年」という区切りの根拠として引用しているツールで、推奨そのものではありません。",
+          en:"A clinical decision rule for patients reporting penicillin allergy (Trubiano 2020 / PALACE 2023). This guideline cites it as the basis for the 5-year cut-off; it is not itself a recommendation."},
+ pf_items:{ja:["ペニシリンアレルギーの申告がある（前提）","反応が 5年以内に起きた","アナフィラキシーまたは血管性浮腫があった、あるいは重症皮膚有害反応（SCAR）だった","その反応に対して治療を要した"],
+           en:["Penicillin allergy reported (entry criterion)","Reaction occurred five years ago or less","Anaphylaxis or angioedema, or a severe cutaneous adverse reaction","Treatment was required for the reaction"]},
+ pf_pts:{ja:n=>n+"点",en:n=>n+" pt"+(n===1?"":"s")},
+ pf_v:{ja:{0:"0点：陽性の可能性 約1%未満。低リスクとして扱えます。",1:"点：陽性の可能性 約5%。低リスク（3点未満）で、直接経口負荷の対象になりえます。",3:"3点：陽性の可能性 約20%。専門医評価を検討します。",4:"点：陽性の可能性 約50%。高リスクで、専門医によるアレルギー精査が必要です。"},
+       en:{0:"0 points: roughly <1% chance of a positive test. Treat as low risk.",1:" points: roughly 5% chance of a positive test. Below 3 is low risk and eligible for direct oral challenge.",3:"3 points: roughly 20% chance of a positive test. Consider specialist assessment.",4:" points: roughly 50% chance of a positive test. High risk — refer for formal allergy work-up."}},
+
+ /* ---- cdct ---- */
+ cd_contra_h:{ja:"実施前チェック（禁忌の確認）",en:"Before you start: contraindications"},
+ cd_contra_note:{ja:"即時型の反応歴がある患者では、以下のいずれかに当てはまると負荷試験は不適です（Table 4 脚注 a）。",
+                 en:"In patients with an immediate-type index reaction, any of the following makes challenge testing unsuitable (Table 4, footnote a)."},
+ cd_contra:{ja:["急性の状態が悪い／循環動態が不安定","重症または管理不良の気道疾患","重症の心疾患（重症大動脈弁狭窄症など）","妊娠中","本人または代諾者から同意を得られない","高用量ステロイドを使用中","抗ヒスタミン薬を使用中で、試験前に中止できない"],
+            en:["Acutely unwell or clinically unstable","Severe or uncontrolled airways disease","Severe cardiac disease, including aortic stenosis","Pregnancy","Unable to obtain informed consent","Currently on high-dose corticosteroids","On antihistamines and unable to withhold them before testing"]},
+ cd_ok:{ja:["禁忌に該当しません","下のプロトコルに従って実施できます。同意取得と、アナフィラキシーに対応できる環境であることを確認してください。"],
+        en:["No contraindication ticked","You can proceed with the protocol below. Confirm consent and that anaphylaxis can be treated where you are."]},
+ cd_ng:{ja:[ "この患者では負荷試験を行いません",n=>"該当項目が "+n+" 件あります。専門医への紹介、または交差反応タブで側鎖の異なる代替薬を検討してください。"],
+        en:[ "Do not perform a challenge in this patient",n=>n+" item"+(n===1?"":"s")+" ticked. Refer to a specialist, or use the cross-reactivity tab to find an agent with a dissimilar side chain."]},
+ cd_proto_h:{ja:"投与プロトコル",en:"Dosing protocol"},
+ cd_proto:{ja:"<h3>単回投与法</h3><p>被疑薬の常用量を 100% 投与（可能なら経口）。被疑薬が不明でペニシリンと推定される場合は <b>アモキシシリン 500 mg（成人）</b>。投与後 <b>60分以上</b> 観察。</p>"+
+  "<h3>段階的投与法（BSACI 2022 の例）</h3><ol class='steps'><li>常用量の 10%（アモキシシリン 50 mg）→ 30分観察</li><li>常用量の 50%（アモキシシリン 250 mg）→ 30分観察</li><li>残量（アモキシシリン 200 mg）→ 60分観察</li></ol>"+
+  "<p class='note'>どちらを使うかは施設のプロトコルに従います。多日間の負荷試験はルーチンには推奨されません（推奨 3.2）。</p>",
+  en:"<h3>Single dose</h3><p>Give 100% of a full dose of the index antibiotic, orally where possible. If the culprit is unknown but probably a penicillin, use <b>amoxicillin 500 mg</b> for adults. Observe for <b>at least 60 minutes</b>.</p>"+
+  "<h3>Graded dose (BSACI 2022 example)</h3><ol class='steps'><li>10% of a full dose (amoxicillin 50 mg) → observe 30 min</li><li>50% of a full dose (amoxicillin 250 mg) → observe 30 min</li><li>Remainder (amoxicillin 200 mg) → observe 60 min</li></ol>"+
+  "<p class='note'>Which one you use follows local preference. Multiple-day challenge is not recommended as routine (recommendation 3.2).</p>"},
+ cd_timer_h:{ja:"観察タイマー",en:"Observation timer"},
+ cd_timer_note:{ja:"画面を閉じるとリセットされます。実際の観察は必ず病棟の記録で管理してください。",
+                en:"Resets when the page closes. Keep the real observation record on the ward chart."},
+ cd_min:{ja:m=>m+"分",en:m=>m+" min"},
+ cd_stop:{ja:"停止",en:"Stop"},
+ cd_pr_h:{ja:"実施の原則（Table 4）",en:"Principles of the challenge (Table 4)"},
+ cd_pr:{ja:["患者に説明し同意を得る。適応と禁忌を確認する。","バイタルサインが測定でき、アナフィラキシーを含むアレルギー反応に対応できる場所で行う。","単回投与法または段階的投与法を、施設の方針に従って選ぶ。","アナフィラキシーを疑う症状が出たら、施設プロトコル／国内のアナフィラキシー診療ガイドラインに沿って治療する。","最終投与後 1時間以上観察する。","帰宅後に症状が出た場合の対応を、書面で患者に渡す。","結果をかかりつけ医・他の医療者に伝える仕組みを作る。患者本人にも結果と意味を（できれば書面で）伝える。"],
+        en:["Inform the patient and take consent; check suitability.","Perform it where vital signs can be measured and allergic reactions, including anaphylaxis, can be treated.","Choose single-dose or graded-dose according to local preference.","If symptoms consistent with anaphylaxis develop, treat per local protocol or national anaphylaxis guidance.","Observe for at least one hour after the last dose.","Give the patient written instructions on what to do if symptoms appear after they leave.","Have a system to tell the GP and other clinicians the result, and give the patient clear written information about what it means."]},
+
+ /* ---- severity ---- */
+ sv_h1:{ja:"重症（severe）",en:"Severe"},
+ sv_1:{ja:"<p class='note'>症状による分類（WAO/EAACI）— 以下のいずれか。</p><ol class='steps'>"+
+   "<li>皮膚／粘膜症状（全身性蕁麻疹、掻痒、紅潮、口唇・舌・口蓋垂の腫脹）の急性発症に加えて、<br>a. 呼吸器症状（呼吸困難、喘鳴・気管支攣縮、stridor、PEF低下、低酸素）<br>b. 血圧低下または臓器障害を示す症状（虚脱、失神、失禁）<br>のいずれかを伴う</li>"+
+   "<li>既知または強く疑われるアレルゲン曝露後に、皮膚症状がなくても低血圧・気管支攣縮・喉頭症状が急性に出現</li>"+
+   "<li>重症皮膚有害反応（SCAR）の danger sign<br>a. 小水疱・痂皮、灰紫色〜暗色の皮疹、有痛性／灼熱感のある皮膚・粘膜＋発熱・倦怠感、粘膜のびらん、皮膚剥離（SJS/TEN）<br>b. 膿疱を伴う皮疹（AGEP）<br>c. 紫斑（血管炎）<br>d. 皮膚外臓器障害を伴う斑・丘疹、体表 50% 超への進展、血算・肝腎の異常（DRESS）<br>e. 顔面浮腫、浮腫性・浸潤性の皮膚炎症、38.5℃ 以上の発熱（AGEP/DRESS）</li></ol>"+
+   "<p class='note'>結果による分類（CIOMS）— 致死的／生命を脅かす、入院を要した、持続的な障害を残した、恒久的損傷を防ぐ介入を要した、先天異常を来した、のいずれか。</p>",
+  en:"<p class='note'>By symptoms (WAO/EAACI) — any one of the following.</p><ol class='steps'>"+
+   "<li>Acute onset of skin and/or mucosal involvement (generalised urticaria, pruritus, flushing, swollen lips, tongue or uvula) plus either<br>a. respiratory compromise (dyspnoea, wheeze or bronchospasm, stridor, reduced PEF, hypoxaemia), or<br>b. reduced blood pressure or symptoms of end-organ dysfunction (collapse, syncope, incontinence)</li>"+
+   "<li>Acute hypotension, bronchospasm or laryngeal involvement after exposure to a known or highly probable allergen, even without skin signs</li>"+
+   "<li>Danger signs for severe cutaneous adverse reactions<br>a. tiny vesicles or crusts, grey-violaceous or dusky lesions, painful or burning skin and mucosa with fever and malaise, haemorrhagic mucosal erosions, skin detachment (SJS/TEN)<br>b. exanthema with pustules (AGEP)<br>c. purpura (vasculitis)<br>d. macules and papules with non-cutaneous organ involvement, spread beyond 50% of body surface, deranged blood count or liver and kidney values (DRESS)<br>e. facial oedema, oedematous infiltrated skin inflammation, fever of 38.5°C or higher (AGEP/DRESS)</li></ol>"+
+   "<p class='note'>By consequences (CIOMS) — fatal or life-threatening, causing hospitalisation, leaving persistent or significant disability, requiring intervention to prevent permanent damage, or causing congenital anomalies.</p>"},
+ sv_h2:{ja:"非重症（nonsevere）",en:"Non-severe"},
+ sv_2:{ja:"<ol class='steps'><li>単一臓器系の症状のみ<br>a. 皮膚：限局性蕁麻疹、紅斑・熱感、掻痒、口唇の違和感<br>b. 上気道：くしゃみ、鼻汁、鼻閉、咽頭掻痒、気管支攣縮によらない咳<br>c. 結膜：充血、掻痒、流涙</li>"+
+   "<li>臓器障害を伴わない斑状丘疹状皮疹</li><li>その他：悪心、金属味、消化器症状（腹部疝痛、反復する嘔吐）</li></ol>"+
+   "<p class='note'><b>蕁麻疹の扱い：</b>急性蕁麻疹は通常、曝露後 1時間以内に出現し 1日以内に消退します。孤立性・限局性の蕁麻疹を非重症とするガイドラインもありますが、本ガイドラインのパネルは安全側に倒して <b>蕁麻疹は重症度によらず高リスク</b>に分類しています（エビデンスは限定的と明記）。臨床的に特定の抗菌薬が必要な場合は、多職種で議論のうえ負荷試験を検討できます。</p>",
+  en:"<ol class='steps'><li>Symptoms from one organ system only<br>a. skin: localised urticaria, erythema and warmth, pruritus, tingling or itching of the lips<br>b. upper respiratory: sneezing, rhinorrhoea, nasal itch or congestion, throat clearing, cough not due to bronchospasm<br>c. conjunctival: erythema, pruritus, tearing</li>"+
+   "<li>Maculopapular exanthema without organ involvement</li><li>Other: nausea, metallic taste, gastrointestinal symptoms such as cramping abdominal pain or repetitive vomiting</li></ol>"+
+   "<p class='note'><b>On urticaria:</b> acute urticaria usually appears within an hour of exposure and settles within a day. Some guidelines call isolated or focal urticaria non-severe, but this panel deliberately classifies <b>urticaria as high risk regardless of severity</b>, noting the evidence is limited. Where a specific antibiotic is clinically needed, a challenge can be considered after multidisciplinary discussion.</p>"},
+
+ /* ---- recommendations ---- */
+ rc_search:{ja:"推奨を検索（例：セファゾリン、遅発、カルバペネム）",en:"Search the recommendations (e.g. cefazolin, delayed, carbapenem)"},
+ rc_ph:{ja:"キーワード",en:"Keyword"},
+ rc_none:{ja:"該当する推奨はありません。別のキーワードで探してみてください。",en:"Nothing matches. Try another keyword."},
+ rc_col:{ja:["推奨","内容"],en:["No.","Recommendation"]},
+
+ /* ---- templates ---- */
+ tp_h:{ja:["問診テンプレート","直接 delabel の記載","負荷試験の指示・記録","患者説明（帰宅時の注意）"],
+       en:["History-taking template","Direct delabelling note","Challenge test order and record","Patient information after a challenge"]},
+ tp_copy:{ja:"コピーする",en:"Copy"},
+ tp_done:{ja:"コピーしました",en:"Copied"},
+
+ /* ---- links ---- */
+ lk_h1:{ja:"元になったガイドライン",en:"Source guidelines"},
+ lk_h2:{ja:"臨床判断ルール・主要研究",en:"Decision rules and key studies"},
+ lk_h3:{ja:"背景・スチュワードシップ",en:"Background and stewardship"},
+ lk_use_h:{ja:"使い方のメモ",en:"How to use it"},
+ lk_use:{ja:"交差反応タブでは、被疑薬を選ぶだけで全 24 薬剤の判定が出ます。特定の薬を投与してよいか確認したいときは右側で薬剤を選ぶと、判定と該当する推奨番号が上に表示されます。",
+         en:"On the cross-reactivity tab, picking the culprit alone classifies all 24 drugs. To check one specific agent, pick it on the right and the verdict plus the relevant recommendation numbers appear at the top."}
+};
+
+const CODE={
+ R:{label:{ja:"側鎖が同一",en:"identical side chain"},head:{ja:"交差反応の可能性が高い",en:"Cross-reactivity likely"},
+    sub:{ja:"R1 または R2 側鎖が被疑薬と同一です。他の選択肢を優先し、どうしても必要なら専門医評価を。",
+         en:"The R1 or R2 side chain is identical to the culprit. Prefer another agent; if it is truly needed, get specialist evaluation."}},
+ O:{label:{ja:"側鎖が類似／臨床研究に基づく",en:"similar side chain or clinical evidence"},head:{ja:"交差反応の可能性あり",en:"Cross-reactivity possible"},
+    sub:{ja:"R1/R2 側鎖の類似性または臨床データから交差反応が起こりうる組み合わせです。可能なら側鎖の異なる薬剤を選びます。",
+         en:"Side-chain similarity or clinical data suggest cross-reactivity here. Choose an agent with a dissimilar side chain where you can."}},
+ G:{label:{ja:"ペニシリン核（PPL）",en:"penicillin core (PPL)"},head:{ja:"同系統のペニシリンとして交差の可能性",en:"Possible cross-reactivity through the penicillin core"},
+    sub:{ja:"ペニシリン核（PPL）を介したアレルギーが起こりえます。時期・重症度に応じてリスク評価タブの判定に従ってください。",
+         en:"Allergy through the penicilloyl core is possible. Follow the risk tab, which weighs timing and severity."}},
+ N:{label:{ja:"リスクなし",en:"no risk"},head:{ja:"交差アレルギー反応のリスクなし",en:"No cross-allergy risk"},
+    sub:{ja:"この組み合わせでの交差反応リスクは示されていません。",en:"No cross-reactivity risk is described for this pair."}},
+ K:{label:{ja:"同一薬",en:"the same drug"},head:{ja:"被疑薬そのもの",en:"This is the culprit itself"},
+    sub:{ja:"再投与の可否はリスク評価タブ（推奨 2.1〜2.4）で判定してください。",en:"Use the risk tab (recommendations 2.1–2.4) to decide about re-exposure."}}
+};
+
+const REC=[
+ ["1.1",{ja:"全般",en:"General"},{ja:"「ペニシリンアレルギー」と表示されている全ての患者に、必要度に応じた優先順位をつけてアレルギー評価を行う。",en:"Every patient labelled penicillin allergic should have a penicillin allergy assessment, prioritised according to need."},{ja:"強い推奨 / SIGN grade E",en:"Strong / SIGN grade E"}],
+ ["1.2",{ja:"全般",en:"General"},{ja:"非専門医は、アナフィラキシーを含むアレルギー反応に対応できる環境であれば、低リスク患者に負荷試験を行ってよい。",en:"Non-allergists should perform drug challenge in low-risk patients, in a setting where allergic reactions including anaphylaxis can be treated."},{ja:"強い推奨 / SIGN grade E",en:"Strong / SIGN grade E"}],
+ ["2.1",{ja:"delabel",en:"Delabelling"},{ja:"以下のいずれかに当てはまれば、事前のアレルギー検査なしでラベルを削除できる（超低リスク）。①指摘後に被疑薬を使用してアレルギー反応がなかった ②家族歴やアレルギーへの不安のみを根拠としたラベル ③症状がアレルギーとして矛盾する（消化器症状のみ、動悸、霧視、頭痛、カンジダ症）。",en:"The label can be removed without prior testing (very low risk) if any one applies: the culprit has been taken since without reaction; the label rests only on family history or fear of allergy; the reported symptoms are incompatible with allergy (gastrointestinal symptoms alone, palpitations, blurred vision, headache, candidiasis)."},{ja:"強い推奨 / 中等度（GRADE）",en:"Strong / moderate (GRADE)"}],
+ ["2.2a",{ja:"負荷試験",en:"Challenge"},{ja:"低リスクの反応歴（5年より前の非重症皮疹／皮疹のみで詳細不明／症状を覚えていない。ただし重症でないと説明された、または入院やアレルギー特異的治療を要さなかったこと）であれば、適切な環境で被疑 β-ラクタムの負荷試験を行える。",en:"A low-risk history — a non-severe cutaneous reaction more than five years ago, rash only with no further history, or no recollection of the symptoms, provided the patient was told it was not severe and/or it required no admission or allergy-specific treatment — can go to controlled challenge with the culprit beta-lactam in an appropriate setting."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["2.2b",{ja:"負荷試験",en:"Challenge"},{ja:"入院患者で 5年より前の非重症・遅発型が疑われる場合は、負荷試験を経ずに被疑 β-ラクタムを治療投与してよい。経過観察を行い、反応がなければラベルを削除する。",en:"Hospitalised patients with a suspected non-severe delayed reaction more than five years ago may receive the culprit beta-lactam without a challenge test. Follow up, and remove the label if no reaction occurs."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}],
+ ["2.3",{ja:"高リスク",en:"High risk"},{ja:"重症の遅発型反応歴がある患者では、被疑薬と同じクラスへの再曝露を行わない。",en:"Do not re-expose patients to the culprit drug class after a severe delayed-type index reaction."},{ja:"強い推奨 / GPS",en:"Strong / good practice statement"}],
+ ["2.4",{ja:"高リスク",en:"High risk"},{ja:"5年以内の非重症・即時型、または時期を問わず重症の即時型が疑われる場合は、再曝露の前に正式なアレルギー精査へ紹介する。",en:"Refer for formal allergy work-up before re-exposure when a non-severe immediate reaction occurred five years ago or less, or when a severe immediate reaction is suspected at any point in the past."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["3.1",{ja:"負荷試験",en:"Challenge"},{ja:"低リスク患者への負荷試験は Table 4 の原則に従って実施する（同意、対応可能な環境、単回または段階的投与、最終投与後 1時間以上の観察、書面での指示、結果の共有）。",en:"Run challenges in low-risk patients on the Table 4 principles: consent, a setting that can treat reactions, single or graded dosing, at least an hour of observation after the last dose, written instructions, and communication of the result."},{ja:"強い推奨 / SIGN grade E",en:"Strong / SIGN grade E"}],
+ ["3.2",{ja:"負荷試験",en:"Challenge"},{ja:"ペニシリンアレルギー評価で、多日間にわたる負荷試験をルーチンに行うことは推奨しない。",en:"Do not use multiple-day drug challenge routinely when evaluating penicillin allergy."},{ja:"強い推奨 / grade なし",en:"Strong / not graded"}],
+ ["4.1",{ja:"ペニシリン→ペニシリン",en:"Penicillin → penicillin"},{ja:"5年以内の即時型ペニシリンアレルギーが疑われる場合、重症度を問わず他のペニシリンも避ける。",en:"Avoid all other penicillins when an immediate-type penicillin allergy is suspected within the past five years, whatever its severity."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["4.2",{ja:"ペニシリン→ペニシリン",en:"Penicillin → penicillin"},{ja:"5年より前の非重症・即時型であれば（低リスク）、適応に応じて他のペニシリンで負荷試験を行ってよい。",en:"After a non-severe immediate reaction more than five years ago (low risk), another penicillin can be given by controlled challenge where indicated."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}],
+ ["4.3",{ja:"ペニシリン→ペニシリン",en:"Penicillin → penicillin"},{ja:"5年より前の非重症・遅発型であれば（低リスク）、他のペニシリンを管理された環境で使用してよい。ここでの「管理された環境」は病院環境を指し、負荷試験のことではない。",en:"After a non-severe delayed reaction more than five years ago (low risk), other penicillins can be used in a controlled setting — meaning a hospital environment, not a challenge test."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}],
+ ["4.4",{ja:"ペニシリン→セフェム",en:"Penicillin → cephalosporin"},{ja:"即時型ペニシリンアレルギーが疑われる／確定した患者には、側鎖の異なるセファロスポリンのみ投与してよい（重症アナフィラキシー例は専門医評価を先に）。",en:"Patients with suspected or proven immediate-type penicillin allergy can receive cephalosporins, but only those with dissimilar side chains. Severe anaphylaxis calls for specialist evaluation first."},{ja:"強い推奨 / 中等度（GRADE）",en:"Strong / moderate (GRADE)"}],
+ ["4.5",{ja:"ペニシリン→セフェム",en:"Penicillin → cephalosporin"},{ja:"非重症・遅発型ペニシリンアレルギーでは、経過年数を問わず側鎖の異なるセファロスポリンを投与してよい。",en:"With a non-severe delayed penicillin allergy, cephalosporins with dissimilar side chains can be given whatever the interval since the reaction."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}],
+ ["4.6",{ja:"ペニシリン→セフェム",en:"Penicillin → cephalosporin"},{ja:"セファゾリンは現行のペニシリンといずれの側鎖も共有しないため、即時型ペニシリンアレルギーが疑われる／確定した患者でも、重症度・経過年数を問わず使用できる（重症アナフィラキシー例は専門医評価を先に）。",en:"Cefazolin shares no side chain with any currently available penicillin and can be used in suspected or proven immediate-type penicillin allergy, whatever the severity or interval. Severe anaphylaxis calls for specialist evaluation first."},{ja:"強い推奨 / 中等度（GRADE）",en:"Strong / moderate (GRADE)"}],
+ ["4.7",{ja:"ペニシリン→カルバペネム/モノバクタム",en:"Penicillin → carbapenem or monobactam"},{ja:"即時型ペニシリンアレルギー（低・高リスクとも）および非重症・遅発型（低リスク）の患者には、事前のアレルギー検査なしでモノバクタムまたはカルバペネムを投与してよい（重症アナフィラキシー例は専門医評価を先に）。",en:"Any monobactam or carbapenem can be given without prior testing to patients with suspected or proven immediate-type penicillin allergy (low and high risk) and to those with non-severe delayed penicillin allergy. Severe anaphylaxis calls for specialist evaluation first."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["4.8",{ja:"セフェム→セフェム",en:"Cephalosporin → cephalosporin"},{ja:"即時型セフェムアレルギーが疑われる患者では、確定または否定のためのアレルギー精査への紹介を検討する。",en:"Consider referral for allergy work-up to prove or disprove a suspected immediate-type cephalosporin allergy."},{ja:"弱い推奨 / GPS",en:"Weak / good practice statement"}],
+ ["4.9",{ja:"セフェム→セフェム",en:"Cephalosporin → cephalosporin"},{ja:"即時型セフェムアレルギーが疑われる／確定した患者には、側鎖の異なるセファロスポリンを使用してよい（重症アナフィラキシー例は専門医評価を先に）。",en:"Cephalosporins with a dissimilar side chain can be used in suspected or proven immediate-type cephalosporin allergy. Severe anaphylaxis calls for specialist evaluation first."},{ja:"強い推奨 / 中等度（GRADE）",en:"Strong / moderate (GRADE)"}],
+ ["4.10",{ja:"セフェム→セフェム",en:"Cephalosporin → cephalosporin"},{ja:"非重症・遅発型セフェムアレルギーでは、経過年数を問わず側鎖の異なるセファロスポリンを使用してよい。",en:"Cephalosporins with a dissimilar side chain can be used in non-severe delayed cephalosporin allergy, whatever the interval since the reaction."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["4.11",{ja:"セフェム→カルバペネム",en:"Cephalosporin → carbapenem"},{ja:"即時型セフェムアレルギーが疑われる／確定した患者には、経過年数を問わず、臨床環境下でいずれのカルバペネムも使用してよい（重症アナフィラキシー例は専門医評価を先に）。",en:"Any carbapenem can be used in a clinical setting in suspected or proven immediate-type cephalosporin allergy, whatever the interval. Severe anaphylaxis calls for specialist evaluation first."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}],
+ ["4.12",{ja:"セフェム→モノバクタム",en:"Cephalosporin → monobactam"},{ja:"非重症・遅発型セフェムアレルギーでは、セフタジジムとセフィデロコル以外のセフェムであれば、経過年数を問わずアズトレオナムを使用してよい。",en:"Aztreonam can be used in non-severe delayed allergy to cephalosporins other than ceftazidime or cefiderocol, whatever the interval since the reaction."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["4.13",{ja:"セフェム→カルバペネム",en:"Cephalosporin → carbapenem"},{ja:"非重症・遅発型セフェムアレルギーでは、経過年数を問わずいずれのカルバペネムも使用してよい。",en:"Any carbapenem can be used in non-severe delayed cephalosporin allergy, whatever the interval since the reaction."},{ja:"弱い推奨 / 非常に低（GRADE）",en:"Weak / very low (GRADE)"}],
+ ["5.1",{ja:"非β-ラクタム",en:"Non-beta-lactam"},{ja:"反応が重症だった場合（高リスク）、被疑薬および同じクラスの他の非 β-ラクタム薬への再曝露を避ける。",en:"Avoid re-exposure to the culprit non-beta-lactam and to every other agent in the same class when the index reaction was severe (high risk)."},{ja:"強い推奨 / 低（GRADE）",en:"Strong / low (GRADE)"}],
+ ["5.2",{ja:"非β-ラクタム",en:"Non-beta-lactam"},{ja:"非重症の反応（低リスク）では、被疑薬または同クラスの他の非 β-ラクタム薬を再導入するために負荷試験を行うことを提案する。",en:"After a non-severe reaction (low risk), consider a controlled challenge to reintroduce the culprit non-beta-lactam or another agent of the same class."},{ja:"弱い推奨 / 低（GRADE）",en:"Weak / low (GRADE)"}]
+];
+
+/* ---- wizard ---- */
+const WZ={
+ start:{q:{ja:"被疑薬はどれですか",en:"Which kind of drug did the patient react to?"},o:[
+   [{ja:"β-ラクタム系（ペニシリン・セフェム・カルバペネム・モノバクタム）",en:"A beta-lactam (penicillin, cephalosporin, carbapenem, monobactam)"},{ja:"",en:""},"vlow"],
+   [{ja:"非 β-ラクタム系",en:"A non-beta-lactam"},{ja:"バンコマイシン、キノロン、ST合剤、マクロライドなど",en:"Vancomycin, quinolones, co-trimoxazole, macrolides and so on"},"vlow"]],
+   set:(o,i)=>({bl:i===0})},
+ vlow:{q:{ja:"次のいずれかに当てはまりますか",en:"Does any of these apply?"},o:[
+   [{ja:"はい、いずれかに当てはまる",en:"Yes, at least one"},{ja:"①指摘後に被疑薬を使って問題がなかった ②家族歴やアレルギーへの不安だけが根拠 ③症状がアレルギーと矛盾する（消化器症状のみ、動悸、霧視、頭痛、カンジダ症）",en:"The culprit has been taken since without reaction; the label rests only on family history or fear of allergy; the symptoms are incompatible with allergy (GI symptoms only, palpitations, blurred vision, headache, candidiasis)"},"R_vlow"],
+   [{ja:"いいえ／不明",en:"No, or unknown"},{ja:"",en:""},"type"]]},
+ type:{q:{ja:"反応の性状はどれに近いですか",en:"What was the reaction like?"},o:[
+   [{ja:"アナフィラキシー／重症の即時型",en:"Anaphylaxis or a severe immediate reaction"},{ja:"呼吸器・循環の症状を伴う、血管性浮腫、治療を要した",en:"Respiratory or circulatory involvement, angioedema, treatment required"},"R_high_imm"],
+   [{ja:"蕁麻疹（即時型・遅発型を問わず）",en:"Urticaria, immediate or delayed"},{ja:"曝露後 1時間以内に出現し 1日以内に消退する典型例",en:"Typically appears within an hour of exposure and settles within a day"},"R_urt"],
+   [{ja:"SCAR／重症の遅発型",en:"SCAR or another severe delayed reaction"},{ja:"SJS・TEN、DRESS、AGEP、血管炎、臓器障害を伴う皮疹、発熱を伴う顔面浮腫",en:"SJS/TEN, DRESS, AGEP, vasculitis, rash with organ involvement, facial oedema with fever"},"R_high_del"],
+   [{ja:"非重症の反応",en:"A non-severe reaction"},{ja:"皮疹のみ、限局性の症状、消化器症状など",en:"Rash only, localised symptoms, gastrointestinal symptoms"},"time"],
+   [{ja:"症状を覚えていない／皮疹としか分からない",en:"Cannot remember, or only knows it was a rash"},{ja:"",en:""},"memory"]]},
+ memory:{q:{ja:"「重症ではない」と説明された、または入院やアレルギー特異的な治療を要さなかった、のどちらかを満たしますか",en:"Was the patient told it was not severe, or did it need no admission and no allergy-specific treatment?"},o:[
+   [{ja:"はい",en:"Yes, at least one"},{ja:"",en:""},"R_low_challenge"],
+   [{ja:"いいえ／確認できない",en:"No, or cannot confirm"},{ja:"",en:""},"R_high_imm"]]},
+ time:{q:{ja:"その反応はいつ起きましたか",en:"When did the reaction happen?"},o:[
+   [{ja:"5年より前",en:"More than five years ago"},{ja:"",en:""},"onset"],
+   [{ja:"5年以内",en:"Five years ago or less"},{ja:"",en:""},"recent"],
+   [{ja:"時期がはっきりしない",en:"Unclear"},{ja:"",en:""},"recent"]]},
+ recent:{q:{ja:"反応の型はどちらですか",en:"Immediate or delayed?"},o:[
+   [{ja:"即時型（1時間以内、遅くとも6時間以内）",en:"Immediate (within an hour, at most six hours)"},{ja:"",en:""},"R_high_imm"],
+   [{ja:"遅発型（6時間以降、数日かけて出現）",en:"Delayed (after six hours, developing over days)"},{ja:"",en:""},"R_low_delayed_recent"],
+   [{ja:"区別がつかない",en:"Cannot tell"},{ja:"",en:""},"R_high_imm"]]},
+ onset:{q:{ja:"反応の型はどちらですか",en:"Immediate or delayed?"},o:[
+   [{ja:"遅発型（6時間以降）",en:"Delayed (after six hours)"},{ja:"",en:""},"hosp"],
+   [{ja:"即時型（1時間以内〜6時間）／区別がつかない",en:"Immediate (within one to six hours), or cannot tell"},{ja:"",en:""},"R_low_challenge"]]},
+ hosp:{q:{ja:"いま入院中で、被疑薬そのものによる治療が必要ですか",en:"Is the patient in hospital and needing treatment with the culprit drug itself?"},o:[
+   [{ja:"はい",en:"Yes"},{ja:"",en:""},"R_low_treat"],
+   [{ja:"いいえ（外来・予定投与など）",en:"No (outpatient, elective use)"},{ja:"",en:""},"R_low_challenge"]]}
+};
+const RES={
+ R_vlow:{k:"vlow",t:{ja:"超低リスク",en:"Very low risk"},h:{ja:"検査なしで直接 delabel できます",en:"Remove the label directly, no testing needed"},
+  b:{ja:"アレルギー検査を行わずにラベルを削除して構いません（推奨 2.1）。被疑薬とその同系統薬をそのまま使用できます。<br><br>削除にあたっては、自院の記録がすべて更新されているかを確認し、可能であれば他の医療機関・かかりつけ医にも変更を伝えてください。",
+     en:"The label can be removed without prior allergy testing (recommendation 2.1). The culprit and other drugs of the same class can be used.<br><br>Check that every record under your care has been updated, and where possible tell the GP and other institutions about the change."}},
+ R_low_challenge:{k:"low",t:{ja:"低リスク",en:"Low risk"},h:{ja:"管理下での負荷試験（CDCT）を行います",en:"Do a controlled drug challenge"},
+  b:{ja:"バイタルが測定でき、アナフィラキシーに対応できる環境で被疑薬の負荷試験を行います（推奨 2.2a）。単回投与法または段階的投与法を、施設の方針に従って選びます。<br><br>負荷試験が難しい患者・環境であれば、側鎖の異なるセフェム、モノバクタム、カルバペネムを使用し、専門医紹介の必要性を検討します。",
+     en:"Challenge with the culprit where vital signs can be measured and anaphylaxis treated (recommendation 2.2a), using single or graded dosing according to local preference.<br><br>If the patient or the setting is unsuitable, use a cephalosporin with a dissimilar side chain, a monobactam or a carbapenem, and consider referral."}},
+ R_low_treat:{k:"low",t:{ja:"低リスク（入院・遅発型）",en:"Low risk (inpatient, delayed)"},h:{ja:"負荷試験を省いて治療投与できます",en:"Treat with the culprit, no challenge needed"},
+  b:{ja:"入院患者で 5年より前の非重症・遅発型が疑われる場合は、負荷試験を経ずに被疑 β-ラクタムの治療を開始してよいとされています（推奨 2.2b）。単回投与の負荷試験は遅発型の検出には向かないためです。<br><br>治療中は経過観察を行い、反応が起きなければラベルを削除してください。",
+     en:"For hospitalised patients with a suspected non-severe delayed reaction more than five years ago, the therapeutic course can simply be started (recommendation 2.2b), because a single-dose challenge is unreliable for detecting delayed reactions.<br><br>Follow up during treatment and remove the label if no reaction occurs."}},
+ R_low_delayed_recent:{k:"high",t:{ja:"高リスク（Fig. 1 の分類）",en:"High risk (per Fig. 1)"},h:{ja:"アレルギー精査への紹介が原則です",en:"Referral for allergy work-up is the default"},
+  b:{ja:"Fig. 1 では「5年以内の非重症反応」は型を問わず高リスクの列に含まれ、専門医紹介とされています。低リスクの基準は「5年より前の非重症皮疹」であり、これには当てはまりません。<br><br>ただしパネルは 5年という区切りを保守的に採用したうえで、「より短い期間でも同様に安全である可能性がある」ことを知識のギャップとして明記しています。臨床的に被疑薬が必要な場合は、多職種で議論のうえ負荷試験を検討してください。<br><br>紹介前に治療が必要なら、交差反応タブで側鎖の異なるセフェム、モノバクタム、カルバペネムを確認してください。",
+     en:"In Fig. 1, a non-severe reaction within five years sits in the high-risk column whatever its type, and goes to specialist referral. The low-risk criterion is a non-severe cutaneous reaction more than five years ago, which this does not meet.<br><br>The panel adopted the five-year threshold conservatively and lists it as a knowledge gap, noting shorter intervals could be equally safe. If the culprit is clinically needed, discuss a challenge with the multidisciplinary team.<br><br>If treatment is needed before the consultation, use the cross-reactivity tab to find a cephalosporin with a dissimilar side chain, a monobactam or a carbapenem."}},
+ R_high_imm:{k:"high",t:{ja:"高リスク",en:"High risk"},h:{ja:"再曝露の前にアレルギー精査へ紹介します",en:"Refer for allergy work-up before any re-exposure"},
+  b:{ja:"5年以内の非重症・即時型、または時期を問わず重症の即時型が疑われる場合は、正式なアレルギー精査を経てから再曝露を検討します（推奨 2.4）。<br><br>紹介前に治療が必要なら、交差反応タブで側鎖の異なるセフェム、モノバクタム、カルバペネムを確認してください。",
+     en:"A non-severe immediate reaction within five years, or a severe immediate reaction at any time, needs formal work-up before re-exposure is considered (recommendation 2.4).<br><br>If treatment is needed before the consultation, use the cross-reactivity tab to find a cephalosporin with a dissimilar side chain, a monobactam or a carbapenem."}},
+ R_high_del:{k:"high",t:{ja:"高リスク（重症遅発型）",en:"High risk (severe delayed)"},h:{ja:"同じ薬剤クラスへの再曝露を行いません",en:"Do not re-expose to the drug class"},
+  b:{ja:"重症の遅発型反応（SJS/TEN、DRESS、AGEP、血管炎など）では、皮膚・皮膚外を問わず被疑薬と同じクラスへの再曝露を行いません（推奨 2.3）。リスクが利益を上回ります。<br><br>治療が必要な場合は非 β-ラクタム（β-ラクタムが被疑薬の場合）を使用し、専門医に相談してください。",
+     en:"After a severe delayed reaction — SJS/TEN, DRESS, AGEP, vasculitis, cutaneous or not — the culprit's whole class is avoided (recommendation 2.3). The risk outweighs any benefit.<br><br>If treatment is needed, use a non-beta-lactam and involve a specialist."}},
+ R_urt:{k:"high",t:{ja:"高リスク（蕁麻疹）",en:"High risk (urticaria)"},h:{ja:"パネルの方針では高リスクに分類します",en:"The panel classifies urticaria as high risk"},
+  b:{ja:"蕁麻疹は IgE 介在性の即時型反応と強く関連するため、本ガイドラインのパネルは安全側に倒して、重症度によらず高リスクに分類しています（エビデンスは限定的と明記）。アレルギー精査への紹介が原則です。<br><br>ただし「蕁麻疹」という言葉が非特異的な皮疹に対して使われていることも多く、孤立性・限局性の蕁麻疹であれば、多職種で議論のうえ負荷試験を検討できます。",
+     en:"Because of its strong association with IgE-mediated immediate reactions, the panel takes the safety-first line and calls urticaria high risk whatever its severity, while noting the evidence is limited. Referral is the default.<br><br>The word is often applied loosely to non-specific rashes, so for isolated or focal urticaria a challenge can be considered after multidisciplinary discussion."}},
+ R_nbl_low:{k:"low",t:{ja:"低リスク（非 β-ラクタム）",en:"Low risk (non-beta-lactam)"},h:{ja:"負荷試験で被疑薬または同クラス薬を再導入します",en:"Reintroduce by controlled challenge"},
+  b:{ja:"非重症の反応であれば、管理下の負荷試験により被疑薬、または同じクラスの他の非 β-ラクタム薬を再導入することが提案されています（推奨 5.2）。<br><br>バンコマイシン、テイコプラニン、キノロン、アムホテリシン B では、反応の多くが IgE を介さないマスト細胞脱顆粒によるもので、投与速度に依存します。緩徐投与や前投薬を検討してください。",
+     en:"After a non-severe reaction, a controlled challenge is suggested to reintroduce the culprit or another agent of the same class (recommendation 5.2).<br><br>With vancomycin, teicoplanin, quinolones and amphotericin B, reactions often come from non-IgE mast cell degranulation and depend on infusion rate. Consider slow infusion or premedication."}},
+ R_nbl_high:{k:"high",t:{ja:"高リスク（非 β-ラクタム・重症）",en:"High risk (non-beta-lactam, severe)"},h:{ja:"被疑薬と同クラスの薬剤をすべて避けます",en:"Avoid the culprit and its whole class"},
+  b:{ja:"反応が重症だった場合は、被疑薬および同じクラスの他の非 β-ラクタム薬への再曝露を避けます（推奨 5.1）。クラス内の交差反応を予測できる信頼できるツールがないためです。<br><br>非 β-ラクタム薬では皮膚テストの診断的価値が限られる点にも注意してください。",
+     en:"After a severe reaction, avoid re-exposure to the culprit and every other agent in the same class (recommendation 5.1), since no reliable tool predicts within-class cross-reactivity.<br><br>Note too that skin testing has limited diagnostic value for non-beta-lactams."}},
+ R_nbl_ref:{k:"high",t:{ja:"高リスク（非 β-ラクタム）",en:"High risk (non-beta-lactam)"},h:{ja:"アレルギー精査へ紹介します",en:"Refer for allergy work-up"},
+  b:{ja:"精査までの間は、被疑薬および同じクラスの薬剤すべてへの再曝露を避けます（Fig. 2、推奨 5.1）。<br><br>治療が必要な場合は、別のクラスの抗菌薬を選択してください。",
+     en:"Until the consultation, avoid re-exposure to the culprit and to every antibiotic in the same class (Fig. 2, recommendation 5.1).<br><br>If treatment is needed, choose an agent from a different class."}}
+};
+
+/* ---- templates ---- */
+const TPL={ja:[
+"【抗菌薬アレルギー 問診】\n被疑薬：　　　　　　（適応：　　　　／投与経路：　　　／用量・回数：　　　）\n発生時期：　　年　　月頃（現在から約　　年前）\n発症までの時間：□1時間以内 □1〜6時間 □6時間以降 □数日後 □不明\n症状：□皮疹（性状：　　　　） □蕁麻疹 □血管性浮腫 □呼吸器症状 □血圧低下・失神\n　　　□粘膜病変 □水疱・皮膚剥離 □膿疱 □発熱 □臓器障害 □消化器症状のみ □その他\n持続期間：　　　　\n受けた治療：□なし □抗ヒスタミン薬 □ステロイド □アドレナリン □入院 □ICU\n重症度（Table 2）：□重症 □非重症 □判断不能\n指摘後の同系統薬の使用歴：□あり（薬剤：　　　　／反応：なし・あり） □なし\n情報源：□本人 □家族 □診療録 □お薬手帳\n判定：□超低リスク □低リスク □高リスク\n方針：□直接delabel □負荷試験 □治療投与＋経過観察 □専門医紹介 □代替薬（　　　　）",
+"【抗菌薬アレルギーラベルの削除】\n被疑薬：　　　　　　　　\n削除の根拠（ESCMID 2026 推奨 2.1、超低リスク）：\n　□指摘後に被疑薬を使用しアレルギー反応なし\n　□家族歴またはアレルギーへの不安のみが根拠\n　□症状がアレルギーと矛盾（消化器症状のみ／動悸／霧視／頭痛／カンジダ症）\n本人に説明のうえ同意を得た。電子カルテのアレルギー欄を削除し、\n「20　年　月　日、問診に基づき delabel。ESCMID 2026 推奨2.1 に基づく」と記載した。\nかかりつけ医・お薬手帳への反映：□依頼済 □患者へ説明済",
+"【管理下抗菌薬負荷試験（CDCT）指示】\n被疑薬：　　　　　　　　／ 負荷薬剤：　　　　　　　　\nリスク判定：低リスク（根拠：　　　　　　　　　　）\n禁忌の確認：急性増悪なし／重症気道疾患なし／重症心疾患なし／妊娠なし／\n　　　　　　同意取得済／高用量ステロイドなし／抗ヒスタミン薬なし\n方法：□単回投与（常用量100%）　□段階的投与（10%→30分→50%→30分→残量→60分）\n実施場所：バイタル測定およびアナフィラキシー対応が可能な　　　　　　\n救急カート・アドレナリン準備：あり\n観察：最終投与後　　分。バイタル（投与前・30分・60分）を記録。\n結果：□陰性（症状なし）→ ラベル削除 □陽性（症状：　　　　　／対応：　　　　　）\n患者への説明：結果と意味を口頭・書面で説明。帰宅後の対応を書面で交付。\n情報共有：かかりつけ医・薬局へ連絡　□済",
+"【負荷試験を受けられた方へ】\n本日、これまで「アレルギーがある」とされていたお薬を、医療者の観察のもとで\n実際に使用していただきました。試験中に問題となる症状は出ませんでした。\n\n・帰宅後、数時間から数日たってから皮疹が出ることがまれにあります。\n　軽い皮疹であれば、多くは自然におさまります。\n・以下の症状が出た場合は、すぐに医療機関に連絡してください。\n　　息苦しさ、のどのつまり、顔や唇の腫れ、全身のじんましん、\n　　ふらつき・意識が遠のく感じ、水ぶくれや皮膚がむける、粘膜のただれ、高熱\n\n・この結果は、かかりつけの先生や薬局にもお伝えください。\n　次に同じお薬が必要になったとき、より適したお薬を選べるようになります。\n\n実施日：20　年　月　日　／　使用したお薬：　　　　　　　　\n連絡先：　　　　　　　　　　　　"
+],en:[
+"ANTIBIOTIC ALLERGY HISTORY\nCulprit drug: ______ (indication: ______ / route: ______ / dose and frequency: ______)\nWhen: ____ / ____ (approx. ____ years ago)\nTime to onset: [ ] <1 h  [ ] 1-6 h  [ ] >6 h  [ ] days later  [ ] unknown\nSymptoms: [ ] rash (type: ______)  [ ] urticaria  [ ] angioedema  [ ] respiratory  [ ] hypotension or syncope\n          [ ] mucosal lesions  [ ] blistering or skin detachment  [ ] pustules  [ ] fever  [ ] organ involvement\n          [ ] GI symptoms only  [ ] other\nDuration: ______\nTreatment given: [ ] none  [ ] antihistamine  [ ] corticosteroid  [ ] adrenaline  [ ] admission  [ ] ICU\nSeverity (Table 2): [ ] severe  [ ] non-severe  [ ] cannot classify\nSame-class drug taken since: [ ] yes (drug: ______ / reaction: none / yes)  [ ] no\nSource of history: [ ] patient  [ ] family  [ ] medical records  [ ] pharmacy record\nRisk category: [ ] very low  [ ] low  [ ] high\nPlan: [ ] direct delabel  [ ] challenge  [ ] treat and observe  [ ] refer  [ ] alternative agent (______)",
+"REMOVAL OF ANTIBIOTIC ALLERGY LABEL\nCulprit drug: ______\nBasis for removal (ESCMID 2026, recommendation 2.1, very low risk):\n  [ ] culprit taken since the index reaction without an allergic reaction\n  [ ] label based solely on family history or fear of allergy\n  [ ] symptoms incompatible with allergy (GI only / palpitations / blurred vision / headache / candidiasis)\nDiscussed with the patient and consent obtained. Allergy field cleared in the record, with the note:\n\"____-__-__ delabelled on the basis of history, per ESCMID 2026 recommendation 2.1.\"\nCommunicated to GP and pharmacy record: [ ] done  [ ] explained to patient",
+"CONTROLLED DRUG CHALLENGE TEST - ORDER AND RECORD\nCulprit drug: ______  /  Challenge agent: ______\nRisk category: low (basis: ______)\nContraindications checked: not acutely unwell / no severe airways disease / no severe cardiac disease /\n  not pregnant / consent obtained / not on high-dose corticosteroids / not on antihistamines\nMethod: [ ] single dose (100% of a full dose)  [ ] graded (10% -> 30 min -> 50% -> 30 min -> remainder -> 60 min)\nSetting: able to measure vital signs and treat anaphylaxis - ______\nResuscitation trolley and adrenaline available: yes\nObservation: ____ minutes after the last dose. Vital signs recorded pre-dose, 30 min, 60 min.\nResult: [ ] negative (no symptoms) -> label removed  [ ] positive (symptoms: ______ / management: ______)\nPatient informed of the result and its meaning, verbally and in writing, with instructions for after discharge.\nResult sent to GP and pharmacy: [ ] done",
+"AFTER YOUR DRUG CHALLENGE\nToday you took a medicine that had been recorded as one you were allergic to, under observation by the\nclinical team. No concerning symptoms appeared during the test.\n\n- Rarely, a rash can appear hours or a few days after going home. Mild rashes usually settle on their own.\n- Contact a doctor straight away if you develop:\n    difficulty breathing, tightness in the throat, swelling of the face or lips, widespread hives,\n    light-headedness or feeling faint, blisters or peeling skin, sores in the mouth or eyes, or a high fever.\n\n- Please tell your GP and your pharmacy about this result. It means a better antibiotic can be chosen for\n  you next time one is needed.\n\nDate: ____-__-__  /  Medicine given: ______\nContact: ______"
+]};
+
+const LINKS=[
+ {g:0,u:"https://doi.org/10.1016/j.cmi.2026.02.011",t:{ja:"ESCMID 2026｜抗菌薬アレルギーの評価と管理",en:"ESCMID 2026 — evaluation and management of a reported antibiotic allergy"},n:{ja:"本アプリの準拠元。CC BY で全文公開",en:"What this app is built on; open access under CC BY"}},
+ {g:0,u:"https://doi.org/10.1016/j.cmi.2023.04.008",t:{ja:"SWAB 2023（オランダ）",en:"SWAB 2023 (Netherlands)"},n:{ja:"交差反応表 Table 3 の原典",en:"Original source of the Table 3 cross-reactivity chart"}},
+ {g:0,u:"https://doi.org/10.1111/cea.14217",t:{ja:"BSACI 2022（英国）",en:"BSACI 2022 (UK)"},n:{ja:"非専門医による delabelling 体制の立ち上げ",en:"Setting up delabelling services run by non-allergists"}},
+ {g:0,u:"https://doi.org/10.18176/jiaci.0859",t:{ja:"SEIMC/SEAIC/SEFH/SEMICYUC 2023（スペイン）",en:"SEIMC/SEAIC/SEFH/SEMICYUC 2023 (Spain)"},n:{ja:"",en:""}},
+ {g:0,u:"https://doi.org/10.1016/j.jaci.2022.08.028",t:{ja:"Drug Allergy Practice Parameter 2022（米国 AAAAI/ACAAI）",en:"Drug Allergy Practice Parameter 2022 (AAAAI/ACAAI, USA)"},n:{ja:"",en:""}},
+ {g:1,u:"https://doi.org/10.1001/jamainternmed.2020.0403",t:{ja:"PEN-FAST の開発と検証（Trubiano 2020）",en:"PEN-FAST development and validation (Trubiano 2020)"},n:{ja:"",en:""}},
+ {g:1,u:"https://doi.org/10.1001/jamainternmed.2023.2986",t:{ja:"PALACE 試験（Copaescu 2023）",en:"PALACE randomised trial (Copaescu 2023)"},n:{ja:"低リスク例への直接経口負荷",en:"Direct oral challenge in low-risk penicillin allergy"}},
+ {g:1,u:"https://doi.org/10.1016/j.jinf.2025.106495",t:{ja:"セフェムアレルギーの臨床判断ルール（Cox 2025）",en:"Cephalosporin allergy clinical decision rule (Cox 2025)"},n:{ja:"",en:""}},
+ {g:1,u:"https://doi.org/10.1001/jamanetworkopen.2023.16776",t:{ja:"SULF-FAST：ST合剤アレルギーの判断ルール（Waldron 2023）",en:"SULF-FAST: sulfa antibiotic allergy decision rule (Waldron 2023)"},n:{ja:"",en:""}},
+ {g:1,u:"https://doi.org/10.1016/j.jaip.2019.05.038",t:{ja:"Picard 2019",en:"Picard 2019"},n:{ja:"ペニシリン→セフェム／カルバペネムの交差反応メタ解析",en:"Meta-analyses of penicillin to cephalosporin and carbapenem cross-reactivity"}},
+ {g:1,u:"https://doi.org/10.1001/jamasurg.2021.0021",t:{ja:"Sousa-Pinto 2021",en:"Sousa-Pinto 2021"},n:{ja:"ペニシリンとセファゾリンの重複アレルギー頻度 0.7%",en:"Dual penicillin and cefazolin allergy in 0.7% of patients"}},
+ {g:1,u:"https://doi.org/10.1016/S0140-6736(18)32218-9",t:{ja:"Antibiotic allergy（Lancet Seminar 2019）",en:"Antibiotic allergy (Lancet seminar, 2019)"},n:{ja:"",en:""}},
+ {g:2,u:"https://doi.org/10.1136/bmj.k2400",t:{ja:"ペニシリンアレルギー表示と MRSA・C. difficile リスク（BMJ 2018）",en:"Penicillin allergy labels and MRSA / C. difficile risk (BMJ 2018)"},n:{ja:"",en:""}},
+ {g:2,u:"https://doi.org/10.1016/j.lanprc.2025.100006",t:{ja:"ALABAMA 試験（Lancet Prim Care 2025）",en:"ALABAMA trial (Lancet Primary Care 2025)"},n:{ja:"プライマリケアでの評価パスウェイ",en:"An assessment pathway in primary care"}},
+ {g:2,u:"https://doi.org/10.1093/jacamr/dlad134",t:{ja:"非専門医による delabelling プロトコルの比較（Powell 2023）",en:"Comparison of delabelling protocols for non-allergists (Powell 2023)"},n:{ja:"",en:""}}
+];
+
+/* =========================================================
+   ENGINE
+   ========================================================= */
+let lang="ja";
+const t=k=>L[k][lang];
+const dn=i=>lang==="ja"?DRUGS[i].jp:DRUGS[i].en;
+const dsub=i=>lang==="ja"?(DRUGS[i].ab||DRUGS[i].en):(DRUGS[i].ab||"");
+const TABS=["cross","risk","cdct","sev","rec","doc","link"];
+let active="cross";
+
+const GUIDE={
+ pp:{t:{ja:"ペニシリン → ペニシリン",en:"Penicillin → penicillin"},li:[
+   {ja:"5年以内の即時型：重症度を問わず、他のペニシリンも避ける（4.1）",en:"Immediate reaction within five years: avoid every other penicillin, whatever the severity (4.1)"},
+   {ja:"5年より前の非重症・即時型：適応に応じて負荷試験を行う（4.2）",en:"Non-severe immediate reaction over five years ago: challenge where indicated (4.2)"},
+   {ja:"5年より前の非重症・遅発型：病院環境で使用できる（4.3）",en:"Non-severe delayed reaction over five years ago: can be used in a hospital setting (4.3)"}]},
+ pc:{t:{ja:"ペニシリン → セフェム",en:"Penicillin → cephalosporin"},li:[
+   {ja:"即時型：側鎖の異なるセフェムのみ使用できる（4.4）",en:"Immediate reaction: only cephalosporins with dissimilar side chains (4.4)"},
+   {ja:"非重症・遅発型：経過年数を問わず、側鎖の異なるセフェムを使用できる（4.5）",en:"Non-severe delayed reaction: dissimilar side chains, whatever the interval (4.5)"}]},
+ cefaz:{t:{ja:"セファゾリンは特例",en:"Cefazolin is the exception"},li:[
+   {ja:"現行のペニシリンと側鎖を共有しないため、重症度・経過年数を問わず使用できる（4.6）",en:"It shares no side chain with any currently available penicillin, so it can be used whatever the severity or interval (4.6)"},
+   {ja:"ペニシリンとセファゾリンの重複アレルギーは 0.7%（Sousa-Pinto 2021）",en:"Dual penicillin and cefazolin allergy runs at 0.7% (Sousa-Pinto 2021)"}]},
+ pcarb:{t:{ja:"ペニシリン → カルバペネム／モノバクタム",en:"Penicillin → carbapenem or monobactam"},li:[
+   {ja:"即時型（低・高リスクとも）：事前検査なしで投与できる（4.7）",en:"Immediate reaction, low and high risk alike: give without prior testing (4.7)"},
+   {ja:"非重症・遅発型：事前検査なしで投与できる（4.7）",en:"Non-severe delayed reaction: give without prior testing (4.7)"},
+   {ja:"スチュワードシップ上、適応が許すならセフェムを優先する",en:"For stewardship, prefer a cephalosporin where the indication allows"}]},
+ cc:{t:{ja:"セフェム → セフェム",en:"Cephalosporin → cephalosporin"},li:[
+   {ja:"即時型・非重症遅発型のいずれも、側鎖の異なるセフェムは使用できる（4.9 / 4.10）",en:"Dissimilar side chains can be used in both immediate and non-severe delayed allergy (4.9 / 4.10)"},
+   {ja:"即時型が疑われる場合は、アレルギー精査への紹介も検討する（4.8）",en:"For a suspected immediate reaction, consider referral for work-up (4.8)"}]},
+ ccarb:{t:{ja:"セフェム → カルバペネム",en:"Cephalosporin → carbapenem"},li:[
+   {ja:"即時型・非重症遅発型のいずれも、経過年数を問わず使用できる（4.11 / 4.13）",en:"Usable in both immediate and non-severe delayed allergy, whatever the interval (4.11 / 4.13)"}]},
+ cmono:{t:{ja:"セフェム → アズトレオナム",en:"Cephalosporin → aztreonam"},li:[
+   {ja:"非重症・遅発型では使用できる（4.12）",en:"Usable in non-severe delayed allergy (4.12)"},
+   {ja:"被疑薬がセフタジジムまたはセフィデロコルの場合は、側鎖を共有するため除外",en:"Excluded when the culprit is ceftazidime or cefiderocol, which share its side chain"},
+   {ja:"即時型については、アズトレオナムを明示した推奨はない（該当するのは 4.11 のカルバペネム）",en:"For an immediate-type reaction there is no recommendation naming aztreonam; 4.11 covers carbapenems instead"}]},
+ cp:{t:{ja:"セフェム → ペニシリン",en:"Cephalosporin → penicillin"},li:[
+   {ja:"本ガイドラインは、この方向の推奨を明示していない",en:"The guideline gives no recommendation in this direction"},
+   {ja:"上の側鎖の判定を根拠に判断し、迷う場合は専門医へ",en:"Judge on the side-chain verdict above, and refer if unsure"}]},
+ none:{t:{ja:"被疑薬がカルバペネム／モノバクタムの場合",en:"When the culprit is a carbapenem or monobactam"},li:[
+   {ja:"本ガイドラインには、この場合の推奨はない",en:"The guideline makes no recommendation for this situation"},
+   {ja:"上の側鎖情報を参考にしつつ、専門医と相談する",en:"Use the side-chain information above and involve a specialist"}]}
+};
+const CAUTION=[
+ {ja:"重症アナフィラキシー（アナフィラキシーショック、ICU入室）の既往がある患者は、これらの推奨の対象外です。まず専門医評価を行ってください。",
+  en:"Patients with severe anaphylaxis (anaphylactic shock, ICU admission) fall outside these recommendations. Get specialist evaluation first."},
+ {ja:"重症の遅発型反応（SCAR、DRESS など）では、同一クラスへの再曝露を行いません（推奨 2.3）。",
+  en:"After a severe delayed reaction such as SCAR or DRESS, the whole class is avoided (recommendation 2.3)."}
+];
+function guidance(ci,ti){
+  const a=DRUGS[ci].cls, b=ti>=0?DRUGS[ti].cls:null, keys=[];
+  if(a==="pen"){
+    if(b==="pen"||b===null) keys.push("pp");
+    if(b==="ceph"||b===null) keys.push("pc");
+    if(ti===7) keys.push("cefaz");
+    if(b==="carb"||b==="mono"||b===null) keys.push("pcarb");
+  } else if(a==="ceph"){
+    if(b==="ceph"||b===null) keys.push("cc");
+    if(b==="carb"||b===null) keys.push("ccarb");
+    if(b==="mono"||b===null) keys.push("cmono");
+    if(b==="pen") keys.push("cp");
+  } else keys.push("none");
+  return keys.map(k=>{const g=GUIDE[k];
+    return '<div class="grule"><h5>'+g.t[lang]+"</h5><ul>"+g.li.map(x=>"<li>"+x[lang]+"</li>").join("")+"</ul></div>";
+  }).join("")+'<div class="gcaution">'+CAUTION.map(c=>"<div>"+c[lang]+"</div>").join("")+"</div>";
+}
+
+/* ---------- cross tab ---------- */
+function buildCross(){
+  const el=document.getElementById("cross");
+  el.innerHTML=
+   '<div class="card"><div class="pick">'+
+   '<div><label for="culprit">'+t("c_culprit")+'</label><select id="culprit"></select></div>'+
+   '<div><label for="target">'+t("c_target")+'</label><select id="target"></select></div>'+
+   '</div><div id="verdict"></div><div id="guide" class="note"></div></div>'+
+   '<div class="card"><div id="lists"></div><hr class="sep"><div class="legend">'+
+   ["R","O","G","N"].map((c,i)=>'<div><span class="swatch s-'+c+'"></span>'+t("c_legend")[i]+'</div>').join('')+
+   '</div><p class="note" style="margin-top:11px">'+t("c_src")+'</p></div>'+
+   '<div class="card"><h3 style="margin-top:0">'+t("c_missing_h")+'</h3>'+t("c_missing")+'</div>';
+
+  const selC=document.getElementById("culprit"), selT=document.getElementById("target");
+  const opt=(v,label)=>{const o=document.createElement("option");o.value=v;o.textContent=label;return o;};
+  selT.appendChild(opt(-1,t("c_all")));
+  [["pen",0],["ceph",1],["carb",2],["mono",3]].forEach(([c,gi])=>{
+    [selC,selT].forEach(sel=>{
+      const g=document.createElement("optgroup"); g.label=t("c_groups")[gi];
+      DRUGS.forEach((d,i)=>{ if(d.cls!==c) return;
+        const main=lang==="ja"?d.jp+" ("+d.en+(d.ab?" / "+d.ab:"")+")":d.en+(d.ab?" ("+d.ab+")":"");
+        g.appendChild(opt(i,main+(d.jpAvail?"":t("c_notavail"))));
+      });
+      sel.appendChild(g);
+    });
+  });
+  selC.value=String(st.ci); selT.value=String(st.ti);
+  selC.onchange=()=>{st.ci=+selC.value;renderCross();};
+  selT.onchange=()=>{st.ti=+selT.value;renderCross();};
+  renderCross();
+}
+function renderCross(){
+  const ci=st.ci, ti=st.ti, vd=document.getElementById("verdict");
+  if(ti>=0){
+    const c=M[ci][ti], info=CODE[c];
+    vd.innerHTML='<div class="verdict v-'+c+'"><p class="head">'+info.head[lang]+'</p><p class="sub">'+
+      t("c_pair")(dn(ci),dn(ti),info.label[lang])+" "+info.sub[lang]+'</p></div>';
+  } else vd.innerHTML="";
+  document.getElementById("guide").innerHTML=guidance(ci,ti);
+
+  let html='<h3 style="margin-top:0">'+t("c_head")(dn(ci))+'</h3>';
+  ["R","O","G","N"].forEach((code,i)=>{
+    const items=DRUGS.map((d,j)=>[d,j]).filter(([d,j])=>M[ci][j]===code);
+    if(!items.length) return;
+    html+='<div class="group"><h4><span class="swatch s-'+code+'"></span>'+t("c_legend")[i]+"（"+items.length+"）</h4><div class=\"drugs\">"+
+      items.map(([d,j])=>'<button class="chip c-'+code+(d.jpAvail?"":" unavail")+'" data-i="'+j+'">'+dn(j)+
+        (dsub(j)?'<span class="jp">'+dsub(j)+"</span>":"")+"</button>").join("")+"</div></div>";
+  });
+  document.getElementById("lists").innerHTML=html;
+  document.querySelectorAll("#lists .chip").forEach(b=>b.onclick=()=>{
+    st.ti=+b.dataset.i; document.getElementById("target").value=b.dataset.i;
+    renderCross(); window.scrollTo({top:0,behavior:"smooth"});
+  });
+}
+
+/* ---------- risk tab ---------- */
+function buildRisk(){
+  document.getElementById("risk").innerHTML=
+   '<div class="card"><div id="crumbs" class="crumb"></div><div id="wizard"></div>'+
+   '<div class="btn-row"><button class="btn" id="wzReset">'+t("r_reset")+'</button></div></div>'+
+   '<p class="note">'+t("r_note")+'</p>'+
+   '<div class="card"><h2 style="margin-top:0">'+t("pf_h")+'</h2><p class="note">'+t("pf_note")+'</p><div id="penfast"></div></div>';
+  document.getElementById("wzReset").onclick=()=>{st.path=[];st.node="start";st.ans={};drawWz();};
+  drawWz(); buildPenfast();
+}
+function drawWz(){
+  const cr=document.getElementById("crumbs");
+  cr.innerHTML=st.path.length?st.path.map(p=>"<span>"+p+"</span>").join(""):
+    '<span style="border:0;background:none;padding:0">'+t("r_hint")+"</span>";
+  const el=document.getElementById("wizard");
+  if(RES[st.node]){
+    const r=RES[st.node];
+    el.innerHTML='<div class="result r-'+r.k+'"><p class="tag">'+r.t[lang]+'</p><h3>'+r.h[lang]+
+      '</h3><p style="margin:0;font-size:14.5px;line-height:1.7">'+r.b[lang]+"</p></div>";
+    return;
+  }
+  const n=WZ[st.node];
+  el.innerHTML='<p class="q">'+n.q[lang]+'</p><div class="opts">'+n.o.map((o,i)=>
+    '<button class="opt" data-i="'+i+'">'+o[0][lang]+(o[1][lang]?"<small>"+o[1][lang]+"</small>":"")+"</button>").join("")+"</div>";
+  el.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i, o=n.o[i], k=st.node;
+    if(WZ[k].set) Object.assign(st.ans,WZ[k].set(o,i));
+    st.path.push({k:k,i:i});
+    const NBL={time:"R_nbl_low",R_low_challenge:"R_nbl_low",R_high_imm:"R_nbl_ref",R_high_del:"R_nbl_high",R_urt:"R_nbl_ref"};
+    st.node=(st.ans.bl===false&&NBL[o[2]])?NBL[o[2]]:o[2];
+    drawWz();
+  });
+}
+/* crumbs need to survive a language switch, so store {node,index} and render on the fly */
+function crumbLabel(p){
+  const s=WZ[p.k].o[p.i][0][lang].split("／")[0].split(" (")[0].split("（")[0].trim();
+  const n=lang==="ja"?14:26;
+  return s.length>n?s.slice(0,n)+"…":s;
+}
+
+/* ---------- PEN-FAST ---------- */
+const PF_PTS=[0,2,2,1];
+function buildPenfast(){
+  const el=document.getElementById("penfast");
+  el.innerHTML=t("pf_items").map((s,i)=>
+    '<label class="score-row"><input type="checkbox" data-i="'+i+'"'+(i===0?" checked disabled":(st.pf[i]?" checked":""))+
+    '><span>'+s+'</span><span class="pts">'+t("pf_pts")(PF_PTS[i])+"</span></label>").join("")+
+    '<div class="total"><b id="pfN">0</b><span id="pfT"></span></div>';
+  const upd=()=>{
+    let s=0;
+    el.querySelectorAll("input:not(:disabled)").forEach(c=>{const i=+c.dataset.i;st.pf[i]=c.checked;if(c.checked)s+=PF_PTS[i];});
+    document.getElementById("pfN").textContent=s;
+    const v=t("pf_v");
+    document.getElementById("pfT").textContent = s===0?v[0] : s<3?(s+v[1]) : s===3?v[3] : (s+v[4]);
+  };
+  el.querySelectorAll("input").forEach(c=>c.onchange=upd); upd();
+}
+
+/* ---------- CDCT ---------- */
+let tIv=null,tEnd=null;
+function buildCdct(){
+  if(tIv){clearInterval(tIv);tIv=null;}
+  document.getElementById("cdct").innerHTML=
+   '<div class="card"><h2 style="margin-top:0">'+t("cd_contra_h")+'</h2><p class="note">'+t("cd_contra_note")+'</p>'+
+   '<div id="contra">'+t("cd_contra").map((c,i)=>'<label class="check"><input type="checkbox" data-i="'+i+'"'+(st.co[i]?" checked":"")+"><span>"+c+"</span></label>").join("")+
+   '</div><div id="contraOut"></div></div>'+
+   '<div class="card"><h2 style="margin-top:0">'+t("cd_proto_h")+'</h2>'+t("cd_proto")+
+   '<hr class="sep"><h3>'+t("cd_timer_h")+'</h3><div class="timer" id="clock">--:--</div>'+
+   '<div class="btn-row"><button class="btn" data-min="30">'+t("cd_min")(30)+'</button>'+
+   '<button class="btn" data-min="60">'+t("cd_min")(60)+'</button>'+
+   '<button class="btn" id="tStop">'+t("cd_stop")+'</button></div>'+
+   '<p class="note">'+t("cd_timer_note")+'</p></div>'+
+   '<div class="card"><h2 style="margin-top:0">'+t("cd_pr_h")+'</h2><ol class="steps">'+
+   t("cd_pr").map(s=>"<li>"+s+"</li>").join("")+"</ol></div>";
+
+  const box=document.getElementById("contra"), out=document.getElementById("contraOut");
+  const upd=()=>{
+    let n=0; box.querySelectorAll("input").forEach(c=>{st.co[+c.dataset.i]=c.checked;if(c.checked)n++;});
+    out.innerHTML = n
+      ? '<div class="verdict v-R" style="margin-bottom:0"><p class="head">'+t("cd_ng")[0]+'</p><p class="sub">'+t("cd_ng")[1](n)+"</p></div>"
+      : '<div class="verdict v-N" style="margin-bottom:0"><p class="head">'+t("cd_ok")[0]+'</p><p class="sub">'+t("cd_ok")[1]+"</p></div>";
+  };
+  box.querySelectorAll("input").forEach(c=>c.onchange=upd); upd();
+
+  const disp=document.getElementById("clock");
+  const tick=()=>{
+    const s=Math.max(0,Math.round((tEnd-Date.now())/1000));
+    disp.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+    if(s<=0){clearInterval(tIv);tIv=null;tEnd=null;beep();disp.style.color="var(--red)";}
+  };
+  const beep=()=>{try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.value=.15;o.start();setTimeout(()=>{o.stop();a.close();},700);}catch(e){}};
+  document.querySelectorAll("#cdct [data-min]").forEach(b=>b.onclick=()=>{
+    tEnd=Date.now()+(+b.dataset.min)*60000; disp.style.color="";
+    if(tIv)clearInterval(tIv); tIv=setInterval(tick,250); tick();
+  });
+  document.getElementById("tStop").onclick=()=>{if(tIv)clearInterval(tIv);tIv=null;tEnd=null;disp.textContent="--:--";disp.style.color="";};
+  if(tEnd){tIv=setInterval(tick,250);tick();}
+}
+
+/* ---------- severity ---------- */
+function buildSev(){
+  document.getElementById("sev").innerHTML=
+   '<div class="card"><h2 style="margin-top:0">'+t("sv_h1")+"</h2>"+t("sv_1")+"</div>"+
+   '<div class="card"><h2 style="margin-top:0">'+t("sv_h2")+"</h2>"+t("sv_2")+"</div>";
+}
+
+/* ---------- recommendations ---------- */
+function buildRec(){
+  document.getElementById("rec").innerHTML=
+   '<div class="card"><label for="recSearch">'+t("rc_search")+'</label>'+
+   '<input type="text" id="recSearch" placeholder="'+t("rc_ph")+'" value="'+st.q.replace(/"/g,"&quot;")+'"></div><div id="recList"></div>';
+  const q=document.getElementById("recSearch"), box=document.getElementById("recList");
+  const draw=()=>{
+    st.q=q.value;
+    const k=st.q.trim().toLowerCase();
+    const rows=REC.filter(r=>!k||(r[0]+" "+r[1][lang]+" "+r[2][lang]+" "+r[3][lang]).toLowerCase().includes(k));
+    box.innerHTML=rows.length
+      ? '<div class="card"><table><thead><tr><th style="width:60px">'+t("rc_col")[0]+"</th><th>"+t("rc_col")[1]+"</th></tr></thead><tbody>"+
+        rows.map(r=>"<tr><td><b>"+r[0]+'</b><br><span class="note" style="font-size:11.5px">'+r[1][lang]+"</span></td><td>"+
+        r[2][lang]+'<br><span class="note">'+r[3][lang]+"</span></td></tr>").join("")+"</tbody></table></div>"
+      : '<div class="card"><p class="note">'+t("rc_none")+"</p></div>";
+  };
+  q.oninput=draw; draw();
+}
+
+/* ---------- templates ---------- */
+function buildDoc(){
+  document.getElementById("doc").innerHTML=TPL[lang].map((txt,i)=>
+   '<div class="card"><h2 style="margin-top:0">'+t("tp_h")[i]+'</h2><textarea id="tp'+i+'"></textarea>'+
+   '<div class="btn-row"><button class="btn btn-primary" data-copy="tp'+i+'">'+t("tp_copy")+"</button></div></div>").join("");
+  TPL[lang].forEach((txt,i)=>document.getElementById("tp"+i).value=txt);
+  document.querySelectorAll("#doc [data-copy]").forEach(b=>b.onclick=async()=>{
+    const ta=document.getElementById(b.dataset.copy), old=b.textContent;
+    try{await navigator.clipboard.writeText(ta.value);}catch(e){ta.select();document.execCommand("copy");}
+    b.textContent=t("tp_done"); setTimeout(()=>b.textContent=old,1400);
+  });
+}
+
+/* ---------- links ---------- */
+function buildLink(){
+  const grp=g=>"<ul>"+LINKS.filter(l=>l.g===g).map(l=>
+    '<li><a href="'+l.u+'" target="_blank" rel="noopener">'+l.t[lang]+"</a>"+(l.n[lang]?" — "+l.n[lang]:"")+"</li>").join("")+"</ul>";
+  document.getElementById("link").innerHTML=
+   '<div class="card"><h2 style="margin-top:0">'+t("lk_h1")+"</h2>"+grp(0)+
+   "<h3>"+t("lk_h2")+"</h3>"+grp(1)+"<h3>"+t("lk_h3")+"</h3>"+grp(2)+"</div>"+
+   '<div class="card"><h3 style="margin-top:0">'+t("lk_use_h")+'</h3><p class="note">'+t("lk_use")+"</p></div>";
+}
+
+/* ---------- shell ---------- */
+const st={ci:0,ti:-1,node:"start",path:[],ans:{},pf:[true,false,false,false],co:[false,false,false,false,false,false,false],q:""};
+
+function buildAll(){
+  document.documentElement.lang=lang;
+  document.getElementById("hTitle").textContent=t("title");
+  document.getElementById("hSub").textContent=t("sub");
+  document.getElementById("disc").textContent=t("disc");
+  document.getElementById("nav").innerHTML=t("nav").map((n,i)=>
+    '<button role="tab" data-tab="'+TABS[i]+'" aria-selected="'+(TABS[i]===active)+'">'+n+"</button>").join("");
+  document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
+    active=b.dataset.tab;
+    document.querySelectorAll("#nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
+    TABS.forEach(id=>document.getElementById(id).hidden=(id!==active));
+    window.scrollTo({top:0});
+  });
+  buildCross(); buildRisk(); buildCdct(); buildSev(); buildRec(); buildDoc(); buildLink();
+  TABS.forEach(id=>document.getElementById(id).hidden=(id!==active));
+}
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{
+  if(lang===b.dataset.lang) return;
+  lang=b.dataset.lang;
+  document.querySelectorAll(".lang button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  buildAll();
+});
+/* crumbs render through crumbLabel so they follow the language */
+const _drawWz=drawWz;
+drawWz=function(){
+  _drawWz();
+  const cr=document.getElementById("crumbs");
+  if(st.path.length) cr.innerHTML=st.path.map(p=>"<span>"+crumbLabel(p)+"</span>").join("");
+};
+buildAll();
+
+/* オフラインで開けるようにする。https 配信のときだけ有効になります */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+}
+</script>
+</body>
+</html>

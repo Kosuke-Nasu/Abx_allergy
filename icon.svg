@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Beta-lactam ring">
+  <rect width="512" height="512" rx="112" fill="#0d2036"/>
+  <g transform="translate(-6,0) translate(256,256) rotate(9) scale(1.18) translate(-256,-256)"
+     fill="none" stroke="#5fb3d9" stroke-width="28" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M106 196 H226 V316 H106 Z"/>
+    <path d="M226 196 L341 158 L406 256 L341 354 L226 316 Z"/>
+  </g>
+  <g transform="translate(-6,0) translate(256,256) rotate(9) scale(1.18) translate(-256,-256)">
+    <circle cx="406" cy="256" r="30" fill="#f0b249"/>
+  </g>
+</svg>
