@@ -61,7 +61,7 @@ nav button{
 }
 nav button:hover{color:var(--ink)}
 nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-nav button:focus-visible,.chip:focus-visible,select:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav button:focus-visible,.chip:focus-visible,select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- generic ---------- */
 section[hidden]{display:none}
@@ -171,7 +171,6 @@ table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
 th,td{text-align:left;padding:8px;border-bottom:1px solid var(--rule);vertical-align:top}
 th{color:var(--muted);font-weight:600;font-size:12.5px}
 code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:13px;color:var(--accent)}
-textarea{width:100%;min-height:170px;font:inherit;font-size:13.5px;line-height:1.65;padding:12px;border:1px solid var(--rule-strong);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .disclaimer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;margin-top:26px;line-height:1.7}
 @media (prefers-reduced-motion:no-preference){.verdict,.result{animation:in .18s ease-out}}
 @keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
@@ -201,7 +200,6 @@ textarea{width:100%;min-height:170px;font:inherit;font-size:13.5px;line-height:1
   <section id="cdct" hidden></section>
   <section id="sev" hidden></section>
   <section id="rec" hidden></section>
-  <section id="doc" hidden></section>
   <section id="link" hidden></section>
   <p class="disclaimer" id="disc"></p>
 </div>
@@ -256,8 +254,8 @@ const L={
  title:{ja:"抗菌薬アレルギー ベッドサイド・ツール",en:"Antibiotic Allergy — Bedside Tool"},
  sub:{ja:"ESCMID 2026 ガイドライン（Joean O, et al. Clin Microbiol Infect 2026;32:767-787）準拠",
       en:"Based on the ESCMID 2026 guideline (Joean O, et al. Clin Microbiol Infect 2026;32:767-787)"},
- nav:{ja:["交差反応","リスク評価","負荷試験","重症度","推奨一覧","記載例","資料"],
-      en:["Cross-reactivity","Risk","Challenge","Severity","Recommendations","Templates","Sources"]},
+ nav:{ja:["交差反応","リスク評価","負荷試験","重症度","推奨一覧","資料"],
+      en:["Cross-reactivity","Risk","Challenge","Severity","Recommendations","Sources"]},
  disc:{ja:"本アプリは ESCMID 2026 ガイドライン（CC BY 4.0）の内容を臨床現場で参照しやすくするための個人用ツールです。原文の推奨を要約しており、判断の根拠として使う際は必ず原著を確認してください。国内の薬剤事情・添付文書とは一致しない部分があります。個々の患者の診療判断の責任は使用者にあります。",
        en:"A personal reference tool that condenses the ESCMID 2026 guideline (CC BY 4.0) for use at the bedside. Recommendations are summarised, so check the original text before relying on any of it. Drug availability and labelling differ by country. Responsibility for clinical decisions rests with the user."},
 
@@ -374,11 +372,6 @@ const L={
  rc_none:{ja:"該当する推奨はありません。別のキーワードで探してみてください。",en:"Nothing matches. Try another keyword."},
  rc_col:{ja:["推奨","内容"],en:["No.","Recommendation"]},
 
- /* ---- templates ---- */
- tp_h:{ja:["問診テンプレート","直接 delabel の記載","負荷試験の指示・記録","患者説明（帰宅時の注意）"],
-       en:["History-taking template","Direct delabelling note","Challenge test order and record","Patient information after a challenge"]},
- tp_copy:{ja:"コピーする",en:"Copy"},
- tp_done:{ja:"コピーしました",en:"Copied"},
 
  /* ---- links ---- */
  lk_h1:{ja:"元になったガイドライン",en:"Source guidelines"},
@@ -497,20 +490,6 @@ const RES={
   b:{ja:"精査までの間は、被疑薬および同じクラスの薬剤すべてへの再曝露を避けます（Fig. 2、推奨 5.1）。<br><br>治療が必要な場合は、別のクラスの抗菌薬を選択してください。",
      en:"Until the consultation, avoid re-exposure to the culprit and to every antibiotic in the same class (Fig. 2, recommendation 5.1).<br><br>If treatment is needed, choose an agent from a different class."}}
 };
-
-/* ---- templates ---- */
-const TPL={ja:[
-"【抗菌薬アレルギー 問診】\n被疑薬：　　　　　　（適応：　　　　／投与経路：　　　／用量・回数：　　　）\n発生時期：　　年　　月頃（現在から約　　年前）\n発症までの時間：□1時間以内 □1〜6時間 □6時間以降 □数日後 □不明\n症状：□皮疹（性状：　　　　） □蕁麻疹 □血管性浮腫 □呼吸器症状 □血圧低下・失神\n　　　□粘膜病変 □水疱・皮膚剥離 □膿疱 □発熱 □臓器障害 □消化器症状のみ □その他\n持続期間：　　　　\n受けた治療：□なし □抗ヒスタミン薬 □ステロイド □アドレナリン □入院 □ICU\n重症度（Table 2）：□重症 □非重症 □判断不能\n指摘後の同系統薬の使用歴：□あり（薬剤：　　　　／反応：なし・あり） □なし\n情報源：□本人 □家族 □診療録 □お薬手帳\n判定：□超低リスク □低リスク □高リスク\n方針：□直接delabel □負荷試験 □治療投与＋経過観察 □専門医紹介 □代替薬（　　　　）",
-"【抗菌薬アレルギーラベルの削除】\n被疑薬：　　　　　　　　\n削除の根拠（ESCMID 2026 推奨 2.1、超低リスク）：\n　□指摘後に被疑薬を使用しアレルギー反応なし\n　□家族歴またはアレルギーへの不安のみが根拠\n　□症状がアレルギーと矛盾（消化器症状のみ／動悸／霧視／頭痛／カンジダ症）\n本人に説明のうえ同意を得た。電子カルテのアレルギー欄を削除し、\n「20　年　月　日、問診に基づき delabel。ESCMID 2026 推奨2.1 に基づく」と記載した。\nかかりつけ医・お薬手帳への反映：□依頼済 □患者へ説明済",
-"【管理下抗菌薬負荷試験（CDCT）指示】\n被疑薬：　　　　　　　　／ 負荷薬剤：　　　　　　　　\nリスク判定：低リスク（根拠：　　　　　　　　　　）\n禁忌の確認：急性増悪なし／重症気道疾患なし／重症心疾患なし／妊娠なし／\n　　　　　　同意取得済／高用量ステロイドなし／抗ヒスタミン薬なし\n方法：□単回投与（常用量100%）　□段階的投与（10%→30分→50%→30分→残量→60分）\n実施場所：バイタル測定およびアナフィラキシー対応が可能な　　　　　　\n救急カート・アドレナリン準備：あり\n観察：最終投与後　　分。バイタル（投与前・30分・60分）を記録。\n結果：□陰性（症状なし）→ ラベル削除 □陽性（症状：　　　　　／対応：　　　　　）\n患者への説明：結果と意味を口頭・書面で説明。帰宅後の対応を書面で交付。\n情報共有：かかりつけ医・薬局へ連絡　□済",
-"【負荷試験を受けられた方へ】\n本日、これまで「アレルギーがある」とされていたお薬を、医療者の観察のもとで\n実際に使用していただきました。試験中に問題となる症状は出ませんでした。\n\n・帰宅後、数時間から数日たってから皮疹が出ることがまれにあります。\n　軽い皮疹であれば、多くは自然におさまります。\n・以下の症状が出た場合は、すぐに医療機関に連絡してください。\n　　息苦しさ、のどのつまり、顔や唇の腫れ、全身のじんましん、\n　　ふらつき・意識が遠のく感じ、水ぶくれや皮膚がむける、粘膜のただれ、高熱\n\n・この結果は、かかりつけの先生や薬局にもお伝えください。\n　次に同じお薬が必要になったとき、より適したお薬を選べるようになります。\n\n実施日：20　年　月　日　／　使用したお薬：　　　　　　　　\n連絡先：　　　　　　　　　　　　"
-],en:[
-"ANTIBIOTIC ALLERGY HISTORY\nCulprit drug: ______ (indication: ______ / route: ______ / dose and frequency: ______)\nWhen: ____ / ____ (approx. ____ years ago)\nTime to onset: [ ] <1 h  [ ] 1-6 h  [ ] >6 h  [ ] days later  [ ] unknown\nSymptoms: [ ] rash (type: ______)  [ ] urticaria  [ ] angioedema  [ ] respiratory  [ ] hypotension or syncope\n          [ ] mucosal lesions  [ ] blistering or skin detachment  [ ] pustules  [ ] fever  [ ] organ involvement\n          [ ] GI symptoms only  [ ] other\nDuration: ______\nTreatment given: [ ] none  [ ] antihistamine  [ ] corticosteroid  [ ] adrenaline  [ ] admission  [ ] ICU\nSeverity (Table 2): [ ] severe  [ ] non-severe  [ ] cannot classify\nSame-class drug taken since: [ ] yes (drug: ______ / reaction: none / yes)  [ ] no\nSource of history: [ ] patient  [ ] family  [ ] medical records  [ ] pharmacy record\nRisk category: [ ] very low  [ ] low  [ ] high\nPlan: [ ] direct delabel  [ ] challenge  [ ] treat and observe  [ ] refer  [ ] alternative agent (______)",
-"REMOVAL OF ANTIBIOTIC ALLERGY LABEL\nCulprit drug: ______\nBasis for removal (ESCMID 2026, recommendation 2.1, very low risk):\n  [ ] culprit taken since the index reaction without an allergic reaction\n  [ ] label based solely on family history or fear of allergy\n  [ ] symptoms incompatible with allergy (GI only / palpitations / blurred vision / headache / candidiasis)\nDiscussed with the patient and consent obtained. Allergy field cleared in the record, with the note:\n\"____-__-__ delabelled on the basis of history, per ESCMID 2026 recommendation 2.1.\"\nCommunicated to GP and pharmacy record: [ ] done  [ ] explained to patient",
-"CONTROLLED DRUG CHALLENGE TEST - ORDER AND RECORD\nCulprit drug: ______  /  Challenge agent: ______\nRisk category: low (basis: ______)\nContraindications checked: not acutely unwell / no severe airways disease / no severe cardiac disease /\n  not pregnant / consent obtained / not on high-dose corticosteroids / not on antihistamines\nMethod: [ ] single dose (100% of a full dose)  [ ] graded (10% -> 30 min -> 50% -> 30 min -> remainder -> 60 min)\nSetting: able to measure vital signs and treat anaphylaxis - ______\nResuscitation trolley and adrenaline available: yes\nObservation: ____ minutes after the last dose. Vital signs recorded pre-dose, 30 min, 60 min.\nResult: [ ] negative (no symptoms) -> label removed  [ ] positive (symptoms: ______ / management: ______)\nPatient informed of the result and its meaning, verbally and in writing, with instructions for after discharge.\nResult sent to GP and pharmacy: [ ] done",
-"AFTER YOUR DRUG CHALLENGE\nToday you took a medicine that had been recorded as one you were allergic to, under observation by the\nclinical team. No concerning symptoms appeared during the test.\n\n- Rarely, a rash can appear hours or a few days after going home. Mild rashes usually settle on their own.\n- Contact a doctor straight away if you develop:\n    difficulty breathing, tightness in the throat, swelling of the face or lips, widespread hives,\n    light-headedness or feeling faint, blisters or peeling skin, sores in the mouth or eyes, or a high fever.\n\n- Please tell your GP and your pharmacy about this result. It means a better antibiotic can be chosen for\n  you next time one is needed.\n\nDate: ____-__-__  /  Medicine given: ______\nContact: ______"
-]};
-
 const LINKS=[
  {g:0,u:"https://doi.org/10.1016/j.cmi.2026.02.011",t:{ja:"ESCMID 2026｜抗菌薬アレルギーの評価と管理",en:"ESCMID 2026 — evaluation and management of a reported antibiotic allergy"},n:{ja:"本アプリの準拠元。CC BY で全文公開",en:"What this app is built on; open access under CC BY"}},
  {g:0,u:"https://doi.org/10.1016/j.cmi.2023.04.008",t:{ja:"SWAB 2023（オランダ）",en:"SWAB 2023 (Netherlands)"},n:{ja:"交差反応表 Table 3 の原典",en:"Original source of the Table 3 cross-reactivity chart"}},
@@ -536,7 +515,7 @@ let lang="ja";
 const t=k=>L[k][lang];
 const dn=i=>lang==="ja"?DRUGS[i].jp:DRUGS[i].en;
 const dsub=i=>lang==="ja"?(DRUGS[i].ab||DRUGS[i].en):(DRUGS[i].ab||"");
-const TABS=["cross","risk","cdct","sev","rec","doc","link"];
+const TABS=["cross","risk","cdct","sev","rec","link"];
 let active="cross";
 
 const GUIDE={
@@ -775,18 +754,6 @@ function buildRec(){
   q.oninput=draw; draw();
 }
 
-/* ---------- templates ---------- */
-function buildDoc(){
-  document.getElementById("doc").innerHTML=TPL[lang].map((txt,i)=>
-   '<div class="card"><h2 style="margin-top:0">'+t("tp_h")[i]+'</h2><textarea id="tp'+i+'"></textarea>'+
-   '<div class="btn-row"><button class="btn btn-primary" data-copy="tp'+i+'">'+t("tp_copy")+"</button></div></div>").join("");
-  TPL[lang].forEach((txt,i)=>document.getElementById("tp"+i).value=txt);
-  document.querySelectorAll("#doc [data-copy]").forEach(b=>b.onclick=async()=>{
-    const ta=document.getElementById(b.dataset.copy), old=b.textContent;
-    try{await navigator.clipboard.writeText(ta.value);}catch(e){ta.select();document.execCommand("copy");}
-    b.textContent=t("tp_done"); setTimeout(()=>b.textContent=old,1400);
-  });
-}
 
 /* ---------- links ---------- */
 function buildLink(){
@@ -814,7 +781,7 @@ function buildAll(){
     TABS.forEach(id=>document.getElementById(id).hidden=(id!==active));
     window.scrollTo({top:0});
   });
-  buildCross(); buildRisk(); buildCdct(); buildSev(); buildRec(); buildDoc(); buildLink();
+  buildCross(); buildRisk(); buildCdct(); buildSev(); buildRec(); buildLink();
   TABS.forEach(id=>document.getElementById(id).hidden=(id!==active));
 }
 document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{
